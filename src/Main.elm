@@ -47,6 +47,8 @@ import Browser
 import Element exposing (..)
 import Element.Background as Background
 import Element.Events exposing (..)
+import Element.Border as Border
+import Element.Font as Font
 -- import Firebase
 import Html
 import Poker as Poker
@@ -271,11 +273,39 @@ subscriptions model =
 view : Model -> Html.Html Msg
 view model =
     layout [] <|
-        row [ height fill, width fill ]
-            [ controlPanel model
-            , playingArea model
+        row [ height fill, width fill, Background.color <| rgb255 100 100 100  ]
+            [ el
+                [ Border.rounded 8
+                , Font.size 140
+                , alignTop
+                , padding 0
+                , spacing 0
+                , height <| px 128
+                , Background.color <| rgb255 255 255 255
+                , Font.color <| rgb255 0 0 255
+
+                -- , Element.explain Debug.todo
+                ]
+                (el [moveUp 18]
+                    (text ("🂡"))
+                ) 
             ]
 
+-- viewAceOfSpades = el
+--         [ Border.rounded 8
+--         , Font.size 140
+--         , alignTop
+--         , padding 0
+--         , spacing 0
+--         , height <| px 128
+--         , Background.color <| rgb255 255 255 255
+--         , Font.color <| rgb255 0 0 255
+
+--         -- , Element.explain Debug.todo
+--         ]
+--         (el [moveUp 23]
+--             (text ("🂡"))
+--         ) 
 
 controlPanel : Model -> Element Msg
 controlPanel model =

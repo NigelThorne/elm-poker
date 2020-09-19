@@ -4,10 +4,10 @@
 // import "firebase/firestore";
 
 import { Elm } from "./Main.elm";
-import registerServiceWorker from "./registerServiceWorker";
+//import registerServiceWorker from "./registerServiceWorker";
 
 // Just checking envs are defined - Debug statement
-console.log(process.env.ELM_APP_API_KEY !== undefined);
+//console.log(process.env.ELM_APP_API_KEY !== undefined);
 
 // const firebaseConfig = {
 //   apiKey: process.env.ELM_APP_API_KEY,
