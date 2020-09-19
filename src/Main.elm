@@ -275,12 +275,10 @@ view model =
     layout [] <|
         row [ height fill, width fill, Background.color <| rgb255 100 100 100  ]
             [ el
-                [ Border.rounded 8
-                , Font.size 140
-                , alignTop
-                , padding 0
-                , spacing 0
+                [ --Border.rounded 8
+                 Font.size 140
                 , height <| px 128
+                -- , 
                 , Background.color <| rgb255 255 255 255
                 , Font.color <| rgb255 0 0 255
 
