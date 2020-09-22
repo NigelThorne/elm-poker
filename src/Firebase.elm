@@ -1,20 +1,27 @@
 port module Firebase exposing (..)
 
 import Json.Decode
-import Json.Decode.Pipeline
 import Json.Encode
+import Json.Decode.Pipeline
 
 
 port signIn : () -> Cmd msg
+
+
 port signOut : () -> Cmd msg
+
+
 port signInInfo : (Json.Encode.Value -> msg) -> Sub msg
+
+
 port signInError : (Json.Encode.Value -> msg) -> Sub msg
 
 
-type alias FirebaseModel =
+type alias Model =
     { userData : Maybe UserData
     , error : ErrorData
     }
+
 
 type alias ErrorData =
     { code : Maybe String
@@ -30,12 +37,12 @@ type alias UserData =
     }
 
 
-initFirebase : FirebaseModel
-initFirebase =
+init : Model
+init =
     { userData = Maybe.Nothing, error = emptyError }
 
 
-isSignedIn : FirebaseModel -> Bool
+isSignedIn : Model -> Bool
 isSignedIn model =
     case model.userData of
         Nothing ->
@@ -45,50 +52,93 @@ isSignedIn model =
             True
 
 
-
-
 emptyError : ErrorData
 emptyError =
     { code = Maybe.Nothing, credential = Maybe.Nothing, message = Maybe.Nothing }
 
 
-type FirebaseMsg
+type Msg
     = LogIn
     | LogOut
     | LoggedInData (Result Json.Decode.Error UserData)
     | LoggedInError (Result Json.Decode.Error ErrorData)
 
-setError : FirebaseModel -> ErrorData -> FirebaseModel
-setError model error =
-    { model | error = error }
 
-updateFirebase : FirebaseMsg -> FirebaseModel -> (FirebaseModel ,Cmd msg)
-updateFirebase msg firebase =
+setError : Model -> Json.Decode.Error -> Model
+setError model error =
+    { model | error = messageToError <| Json.Decode.errorToString error }
+
+
+update : Msg -> Model -> ( Model, Cmd msg )
+update msg model =
     case msg of
         LogIn ->
-            ( firebase, signIn () )
+            ( model, signIn () )
 
         LogOut ->
-            ( { firebase | userData = Maybe.Nothing, error = emptyError } , signOut () )
+            ( { model | userData = Maybe.Nothing, error = emptyError }, signOut () )
 
         LoggedInData result ->
             case result of
                 Ok value ->
-                    ( { firebase | userData = Just value } , Cmd.none )
+                    ( { model | userData = Just value }, Cmd.none )
 
                 Err error ->
-                    ( { firebase | error = messageToError <| Json.Decode.errorToString error } , Cmd.none )
+                    ( { model | error = messageToError <| Json.Decode.errorToString error }, Cmd.none )
 
         LoggedInError result ->
             case result of
                 Ok value ->
-                    ( { firebase | error = value } , Cmd.none )
+                    ( { model | error = value }, Cmd.none )
 
                 Err error ->
-                    ( { firebase | error = messageToError <| Json.Decode.errorToString error } , Cmd.none )
+                    ( { model | error = messageToError <| Json.Decode.errorToString error }, Cmd.none )
 
 
 messageToError : String -> ErrorData
 messageToError message =
     { code = Maybe.Nothing, credential = Maybe.Nothing, message = Just message }
 
+
+messageEncoder : Model -> String -> Json.Encode.Value
+messageEncoder model message =
+    Json.Encode.object
+        [ ( "content", Json.Encode.string message )
+        , ( "uid"
+          , case model.userData of
+                Just userData ->
+                    Json.Encode.string userData.uid
+
+                Maybe.Nothing ->
+                    Json.Encode.null
+          )
+        ]
+
+
+errorPrinter : ErrorData -> String
+errorPrinter errorData =
+    Maybe.withDefault "" errorData.code ++ " " ++ Maybe.withDefault "" errorData.credential ++ " " ++ Maybe.withDefault "" errorData.message
+
+
+userDataDecoder : Json.Decode.Decoder UserData
+userDataDecoder =
+    Json.Decode.succeed UserData
+        |> Json.Decode.Pipeline.required "token" Json.Decode.string
+        |> Json.Decode.Pipeline.required "email" Json.Decode.string
+        |> Json.Decode.Pipeline.required "uid" Json.Decode.string
+
+
+
+logInErrorDecoder : Json.Decode.Decoder ErrorData
+logInErrorDecoder =
+    Json.Decode.succeed ErrorData
+        |> Json.Decode.Pipeline.required "code" (Json.Decode.nullable Json.Decode.string)
+        |> Json.Decode.Pipeline.required "message" (Json.Decode.nullable Json.Decode.string)
+        |> Json.Decode.Pipeline.required "credential" (Json.Decode.nullable Json.Decode.string)
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch
+        [ signInInfo (Json.Decode.decodeValue userDataDecoder >> LoggedInData)
+        , signInError (Json.Decode.decodeValue logInErrorDecoder >> LoggedInError)
+        ]

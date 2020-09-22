@@ -11,16 +11,17 @@ import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
-import Html.Events exposing (onInput)
+import Firebase 
+import Html.Events
 import Json.Decode
 import Json.Decode.Pipeline
 import Json.Encode
-import Firebase exposing (..)
-
-
+import Styles exposing (..)
 
 
 port saveMessage : Json.Encode.Value -> Cmd msg
+
+
 port receiveMessages : (Json.Encode.Value -> msg) -> Sub msg
 
 
@@ -57,10 +58,11 @@ port receiveMessages : (Json.Encode.Value -> msg) -> Sub msg
 
 
 type alias Model =
-    { firebase : FirebaseModel
+    { firebase : Firebase.Model
     , inputContent : String
     , messages : List String
     }
+
 
 
 {-
@@ -96,7 +98,7 @@ type alias Model =
 
 init : Model
 init =
-    { firebase = initFirebase, inputContent = "", messages = [] }
+    { firebase = Firebase.init, inputContent = "", messages = [] }
 
 
 
@@ -136,8 +138,7 @@ type Msg
     | InputChanged String
     | MessagesReceived (Result Json.Decode.Error (List String))
     | EnterWasPressed
-    | Firebase FirebaseMsg
-
+    | Firebase Firebase.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -145,10 +146,11 @@ update msg model =
     case msg of
         Firebase fmsg ->
             let
-                (a,b) = updateFirebase fmsg model.firebase
+                ( a, b ) =
+                   Firebase.update fmsg model.firebase
             in
-                ({model | firebase = a}, (Cmd.map (\x -> Firebase x) b))
-            
+                ( { model | firebase = a }, Cmd.map (\x -> Firebase x) b )
+
         SaveMessage ->
             ( { model | inputContent = "" }, saveMessage <| messageEncoder model )
 
@@ -161,11 +163,10 @@ update msg model =
                     ( { model | messages = value }, Cmd.none )
 
                 Err error ->
-                    ( { model | firebase = setError model.firebase (messageToError <| Json.Decode.errorToString error) }, Cmd.none )
+                    ( { model | firebase = Firebase.setError model.firebase error }, Cmd.none )
 
         EnterWasPressed ->
             ( { model | inputContent = "" }, saveMessage <| messageEncoder model )
-
 
 
 onEnter : msg -> Element.Attribute msg
@@ -187,39 +188,8 @@ onEnter msg =
 
 messageEncoder : Model -> Json.Encode.Value
 messageEncoder model =
-    Json.Encode.object
-        [ ( "content", Json.Encode.string model.inputContent )
-        , ( "uid"
-          , case model.firebase.userData of
-                Just userData ->
-                    Json.Encode.string userData.uid
+    Firebase.messageEncoder model.firebase model.inputContent
 
-                Maybe.Nothing ->
-                    Json.Encode.null
-          )
-        ]
-
-
-
-errorPrinter : ErrorData -> String
-errorPrinter errorData =
-    Maybe.withDefault "" errorData.code ++ " " ++ Maybe.withDefault "" errorData.credential ++ " " ++ Maybe.withDefault "" errorData.message
-
-
-userDataDecoder : Json.Decode.Decoder UserData
-userDataDecoder =
-    Json.Decode.succeed UserData
-        |> Json.Decode.Pipeline.required "token" Json.Decode.string
-        |> Json.Decode.Pipeline.required "email" Json.Decode.string
-        |> Json.Decode.Pipeline.required "uid" Json.Decode.string
-
-
-logInErrorDecoder : Json.Decode.Decoder ErrorData
-logInErrorDecoder =
-    Json.Decode.succeed ErrorData
-        |> Json.Decode.Pipeline.required "code" (Json.Decode.nullable Json.Decode.string)
-        |> Json.Decode.Pipeline.required "message" (Json.Decode.nullable Json.Decode.string)
-        |> Json.Decode.Pipeline.required "credential" (Json.Decode.nullable Json.Decode.string)
 
 
 messagesDecoder =
@@ -264,21 +234,14 @@ messageListDecoder =
 -}
 
 
-buttonStyle =
-    [ height fill
-    , width <| fillPortion 1
-    , Background.color <| rgb255 92 99 118
-    , Font.color <| rgb255 255 255 255
-    , spacing 8
-    , padding 8
-    ]
 
 
 viewUserControls : Model -> Element Msg
 viewUserControls model =
     Element.map (\c -> Firebase c) (viewFirebaseUserControls model.firebase)
 
-viewFirebaseUserControls : FirebaseModel -> Element FirebaseMsg
+
+viewFirebaseUserControls : Firebase.Model -> Element Firebase.Msg
 viewFirebaseUserControls model =
     column
         [ width <| px 300
@@ -291,13 +254,13 @@ viewFirebaseUserControls model =
                     column [ spacing 10, centerX ]
                         [ text "You are logged in as: "
                         , text data.email
-                        , Input.button buttonStyle { onPress = Just LogOut, label = text "Logout from Google" }
+                        , Input.button buttonStyle { onPress = Just Firebase.LogOut, label = text "Logout from Google" }
                         ]
 
                 Maybe.Nothing ->
                     column [ spacing 10, centerX ]
                         [ text ""
-                        , Input.button buttonStyle { onPress = Just LogIn, label = text "Login with Google" }
+                        , Input.button buttonStyle { onPress = Just Firebase.LogIn, label = text "Login with Google" }
                         ]
             )
         ]
@@ -343,7 +306,7 @@ viewChatWindow model =
                         model.messages
                 ]
             ]
-        , el [] (text <| errorPrinter model.firebase.error)
+        , el [] (text <| Firebase.errorPrinter model.firebase.error)
         ]
 
 
@@ -382,7 +345,6 @@ viewChatWindow model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Sub.map (\x -> Firebase x) (signInInfo (Json.Decode.decodeValue userDataDecoder >> LoggedInData))
-        , Sub.map (\x -> Firebase x) (signInError (Json.Decode.decodeValue logInErrorDecoder >> LoggedInError))
+        [ Sub.map (\x -> Firebase x) (Firebase.subscriptions model.firebase)
         , receiveMessages (Json.Decode.decodeValue messageListDecoder >> MessagesReceived)
         ]
