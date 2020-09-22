@@ -1,4 +1,4 @@
-port module Chat exposing (Model, Msg(..), init, subscriptions, update, viewChatWindow, viewUserControls)
+port module Chat exposing (Model, Msg(..), init, subscriptions, update, viewChatWindow)
 
 -- import Browser
 -- import Html exposing (Html, button, div, h1, h2, h3, img, input, p, text)
@@ -6,12 +6,10 @@ port module Chat exposing (Model, Msg(..), init, subscriptions, update, viewChat
 -- import Html.Events exposing (onClick, onInput)
 
 import Element exposing (..)
-import Element.Background as Background
 import Element.Border as Border
 import Element.Events exposing (..)
-import Element.Font as Font
 import Element.Input as Input
-import Firebase 
+import Firebase
 import Html.Events
 import Json.Decode
 import Json.Decode.Pipeline
@@ -58,8 +56,7 @@ port receiveMessages : (Json.Encode.Value -> msg) -> Sub msg
 
 
 type alias Model =
-    { firebase : Firebase.Model
-    , inputContent : String
+    { inputContent : String
     , messages : List String
     }
 
@@ -98,7 +95,7 @@ type alias Model =
 
 init : Model
 init =
-    { firebase = Firebase.init, inputContent = "", messages = [] }
+    { inputContent = "", messages = [] }
 
 
 
@@ -138,35 +135,29 @@ type Msg
     | InputChanged String
     | MessagesReceived (Result Json.Decode.Error (List String))
     | EnterWasPressed
-    | Firebase Firebase.Msg
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : Msg -> Model -> Firebase.Model -> ( Model, Firebase.Model, Cmd Msg )
+update msg model firebase =
     case msg of
-        Firebase fmsg ->
-            let
-                ( a, b ) =
-                   Firebase.update fmsg model.firebase
-            in
-                ( { model | firebase = a }, Cmd.map (\x -> Firebase x) b )
-
         SaveMessage ->
-            ( { model | inputContent = "" }, saveMessage <| messageEncoder model )
+            ( { model | inputContent = "" }, firebase, saveMessage <| messageEncoder model firebase )
 
         InputChanged value ->
-            ( { model | inputContent = value }, Cmd.none )
+            ( { model | inputContent = value }, firebase, Cmd.none )
 
         MessagesReceived result ->
             case result of
                 Ok value ->
-                    ( { model | messages = value }, Cmd.none )
+                    ( { model | messages = value }, firebase, Cmd.none )
 
                 Err error ->
-                    ( { model | firebase = Firebase.setError model.firebase error }, Cmd.none )
+                    ( model,  Firebase.setError firebase error , Cmd.none )
 
         EnterWasPressed ->
-            ( { model | inputContent = "" }, saveMessage <| messageEncoder model )
+            ( { model | inputContent = "" }, firebase, saveMessage <| messageEncoder model firebase )
+            
+
 
 
 onEnter : msg -> Element.Attribute msg
@@ -186,10 +177,9 @@ onEnter msg =
         )
 
 
-messageEncoder : Model -> Json.Encode.Value
-messageEncoder model =
-    Firebase.messageEncoder model.firebase model.inputContent
-
+messageEncoder : Model -> Firebase.Model -> Json.Encode.Value
+messageEncoder model firebase =
+    Firebase.messageEncoder firebase model.inputContent
 
 
 messagesDecoder =
@@ -235,45 +225,14 @@ messageListDecoder =
 
 
 
-
-viewUserControls : Model -> Element Msg
-viewUserControls model =
-    Element.map (\c -> Firebase c) (viewFirebaseUserControls model.firebase)
-
-
-viewFirebaseUserControls : Firebase.Model -> Element Firebase.Msg
-viewFirebaseUserControls model =
+viewChatWindow : Model -> Firebase.Model -> Element Msg
+viewChatWindow model firebase =
     column
         [ width <| px 300
         , spacing 20
         , centerX
         ]
-        [ el []
-            (case model.userData of
-                Just data ->
-                    column [ spacing 10, centerX ]
-                        [ text "You are logged in as: "
-                        , text data.email
-                        , Input.button buttonStyle { onPress = Just Firebase.LogOut, label = text "Logout from Google" }
-                        ]
-
-                Maybe.Nothing ->
-                    column [ spacing 10, centerX ]
-                        [ text ""
-                        , Input.button buttonStyle { onPress = Just Firebase.LogIn, label = text "Login with Google" }
-                        ]
-            )
-        ]
-
-
-viewChatWindow : Model -> Element Msg
-viewChatWindow model =
-    column
-        [ width <| px 300
-        , spacing 20
-        , centerX
-        ]
-        [ case model.firebase.userData of
+        [ case firebase.userData of
             Just _ ->
                 column [ spacing 10, centerX ]
                     [ Input.text
@@ -306,7 +265,7 @@ viewChatWindow model =
                         model.messages
                 ]
             ]
-        , el [] (text <| Firebase.errorPrinter model.firebase.error)
+        , el [] (text <| Firebase.errorPrinter firebase.error)
         ]
 
 
@@ -345,6 +304,5 @@ viewChatWindow model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Sub.map (\x -> Firebase x) (Firebase.subscriptions model.firebase)
-        , receiveMessages (Json.Decode.decodeValue messageListDecoder >> MessagesReceived)
+        [ receiveMessages (Json.Decode.decodeValue messageListDecoder >> MessagesReceived)
         ]

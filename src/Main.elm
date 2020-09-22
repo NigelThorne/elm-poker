@@ -47,10 +47,12 @@ import Browser
 import Element exposing (..)
 import Element.Background as Background
 import Element.Events exposing (..)
+import Element.Input as Input
 import Firebase
 import Html
 import Poker as Poker
 import Chat 
+import Styles exposing  (..)
 
 
 
@@ -121,12 +123,13 @@ main =
 type alias Model =
     { game : Poker.Game
     , chat : Chat.Model
+    , firebase : Firebase.Model
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model Poker.initGame Chat.init
+    ( Model Poker.initGame Chat.init Firebase.init
     , Cmd.none
     )
 
@@ -165,6 +168,7 @@ init _ =
 type Msg
     = PokerMsg Poker.Msg
     | ChatMsg Chat.Msg
+    | Firebase Firebase.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -174,8 +178,13 @@ update msg model =
             updateModelFromPokerMsg model <| Poker.update pmsg model.game
 
         ChatMsg chatMsg ->
-            updateModelFromChatMsg model <| Chat.update chatMsg model.chat
+            updateModelFromChatMsg model <| Chat.update chatMsg model.chat model.firebase
 
+        Firebase fmsg ->
+                    let
+                        ( a, b ) =                      Firebase.update fmsg model.firebase
+                    in
+                        ( { model | firebase = a }, Cmd.map (\x -> Firebase x) b )
 
 updateModelFromPokerMsg : Model -> ( Poker.Game, Cmd Poker.Msg ) -> ( Model, Cmd Msg )
 updateModelFromPokerMsg model ( game, cmd ) =
@@ -184,9 +193,9 @@ updateModelFromPokerMsg model ( game, cmd ) =
     )
 
 
-updateModelFromChatMsg : Model -> ( Chat.Model, Cmd Chat.Msg ) -> ( Model, Cmd Msg )
-updateModelFromChatMsg model ( chat, cmd ) =
-    ( { model | chat = chat }
+updateModelFromChatMsg : Model -> ( Chat.Model, Firebase.Model, Cmd Chat.Msg ) -> ( Model, Cmd Msg )
+updateModelFromChatMsg model  ( chat, firebase, cmd ) =
+    ( { model | chat = chat , firebase = firebase}
     , Cmd.map mapChatMsg cmd
     )
 
@@ -234,7 +243,10 @@ mapChatMsg chatMsg =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map mapChatMsg (Chat.subscriptions model.chat)
+    Sub.batch 
+        [ Sub.map (\x -> Firebase x) (Firebase.subscriptions model.firebase)
+        , Sub.map mapChatMsg (Chat.subscriptions model.chat)
+        ]
 
 
 
@@ -285,8 +297,8 @@ controlPanel model =
         , padding 20
         , height fill
         ] 
-        [ el [centerX] (Element.map mapChatMsg (Chat.viewUserControls model.chat))
-        , el [centerX] (Element.map mapChatMsg (Chat.viewChatWindow model.chat))
+        [ el [centerX] (viewUserControls model)
+        , el [centerX] (Element.map mapChatMsg (Chat.viewChatWindow model.chat model.firebase))
         ]
 
 playingArea : Model -> Element Msg
@@ -296,12 +308,41 @@ playingArea model =
         , width <| fillPortion 5
         ]
         [ 
-            if Firebase.isSignedIn model.chat.firebase then
+            if Firebase.isSignedIn model.firebase then
                 Poker.viewTable model.game
             else
-               Element.map mapChatMsg (Chat.viewUserControls model.chat)
+               viewUserControls model
         , el [width fill  
             , Background.color <| rgb255 0 123 23
             ]
             (Element.map mapPokerMsg Poker.pokerControls )
+        ]
+
+
+viewUserControls : Model -> Element Msg
+viewUserControls model =
+    Element.map (\c -> Firebase c) (viewFirebaseUserControls model.firebase)
+
+viewFirebaseUserControls : Firebase.Model -> Element Firebase.Msg
+viewFirebaseUserControls model =
+    column
+        [ width <| px 300
+        , spacing 20
+        , centerX
+        ]
+        [ el []
+            (case model.userData of
+                Just data ->
+                    column [ spacing 10, centerX ]
+                        [ text "You are logged in as: "
+                        , text data.email
+                        , Input.button buttonStyle { onPress = Just Firebase.LogOut, label = text "Logout from Google" }
+                        ]
+
+                Maybe.Nothing ->
+                    column [ spacing 10, centerX ]
+                        [ text ""
+                        , Input.button buttonStyle { onPress = Just Firebase.LogIn, label = text "Login with Google" }
+                        ]
+            )
         ]
