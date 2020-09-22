@@ -164,7 +164,7 @@ init _ =
 
 type Msg
     = PokerMsg Poker.Msg
-    | FirebaseMsg Chat.Msg
+    | ChatMsg Chat.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -173,8 +173,8 @@ update msg model =
         PokerMsg pmsg ->
             updateModelFromPokerMsg model <| Poker.update pmsg model.game
 
-        FirebaseMsg fmsg ->
-            updateModelFromChatMsg model <| Chat.update fmsg model.chat
+        ChatMsg chatMsg ->
+            updateModelFromChatMsg model <| Chat.update chatMsg model.chat
 
 
 updateModelFromPokerMsg : Model -> ( Poker.Game, Cmd Poker.Msg ) -> ( Model, Cmd Msg )
@@ -187,7 +187,7 @@ updateModelFromPokerMsg model ( game, cmd ) =
 updateModelFromChatMsg : Model -> ( Chat.Model, Cmd Chat.Msg ) -> ( Model, Cmd Msg )
 updateModelFromChatMsg model ( chat, cmd ) =
     ( { model | chat = chat }
-    , Cmd.map mapFirebaseMsg cmd
+    , Cmd.map mapChatMsg cmd
     )
 
 
@@ -196,9 +196,9 @@ mapPokerMsg pokerMsg =
     PokerMsg pokerMsg
 
 
-mapFirebaseMsg : Chat.Msg -> Msg
-mapFirebaseMsg firebaseMsg =
-    FirebaseMsg firebaseMsg
+mapChatMsg : Chat.Msg -> Msg
+mapChatMsg chatMsg =
+    ChatMsg chatMsg
 
 
 
@@ -234,7 +234,7 @@ mapFirebaseMsg firebaseMsg =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map mapFirebaseMsg (Chat.subscriptions model.chat)
+    Sub.map mapChatMsg (Chat.subscriptions model.chat)
 
 
 
@@ -285,8 +285,8 @@ controlPanel model =
         , padding 20
         , height fill
         ] 
-        [ el [centerX] (Element.map mapFirebaseMsg (Chat.viewUserControls model.chat))
-        , el [centerX] (Element.map mapFirebaseMsg (Chat.viewChatWindow model.chat))
+        [ el [centerX] (Element.map mapChatMsg (Chat.viewUserControls model.chat))
+        , el [centerX] (Element.map mapChatMsg (Chat.viewChatWindow model.chat))
         ]
 
 playingArea : Model -> Element Msg
@@ -299,7 +299,7 @@ playingArea model =
             if Firebase.isSignedIn model.chat.firebase then
                 Poker.viewTable model.game
             else
-               Element.map mapFirebaseMsg (Chat.viewUserControls model.chat)
+               Element.map mapChatMsg (Chat.viewUserControls model.chat)
         , el [width fill  
             , Background.color <| rgb255 0 123 23
             ]
