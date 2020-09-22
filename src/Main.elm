@@ -47,7 +47,7 @@ import Browser
 import Element exposing (..)
 import Element.Background as Background
 import Element.Events exposing (..)
-import Firebase
+import Chat
 import Html
 import Poker as Poker
 
@@ -119,13 +119,13 @@ main =
 
 type alias Model =
     { game : Poker.Game
-    , firebase : Firebase.Model
+    , firebase : Chat.Model
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model Poker.initGame Firebase.init
+    ( Model Poker.initGame Chat.init
     , Cmd.none
     )
 
@@ -163,7 +163,7 @@ init _ =
 
 type Msg
     = PokerMsg Poker.Msg
-    | FirebaseMsg Firebase.Msg
+    | FirebaseMsg Chat.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -173,7 +173,7 @@ update msg model =
             updateModelFromPokerMsg model <| Poker.update pmsg model.game
 
         FirebaseMsg fmsg ->
-            updateModelFromFirebaseMsg model <| Firebase.update fmsg model.firebase
+            updateModelFromFirebaseMsg model <| Chat.update fmsg model.firebase
 
 
 updateModelFromPokerMsg : Model -> ( Poker.Game, Cmd Poker.Msg ) -> ( Model, Cmd Msg )
@@ -183,7 +183,7 @@ updateModelFromPokerMsg model ( game, cmd ) =
     )
 
 
-updateModelFromFirebaseMsg : Model -> ( Firebase.Model, Cmd Firebase.Msg ) -> ( Model, Cmd Msg )
+updateModelFromFirebaseMsg : Model -> ( Chat.Model, Cmd Chat.Msg ) -> ( Model, Cmd Msg )
 updateModelFromFirebaseMsg model ( firebase, cmd ) =
     ( { model | firebase = firebase }
     , Cmd.map mapFirebaseMsg cmd
@@ -195,7 +195,7 @@ mapPokerMsg pokerMsg =
     PokerMsg pokerMsg
 
 
-mapFirebaseMsg : Firebase.Msg -> Msg
+mapFirebaseMsg : Chat.Msg -> Msg
 mapFirebaseMsg firebaseMsg =
     FirebaseMsg firebaseMsg
 
@@ -233,7 +233,7 @@ mapFirebaseMsg firebaseMsg =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map mapFirebaseMsg (Firebase.subscriptions model.firebase)
+    Sub.map mapFirebaseMsg (Chat.subscriptions model.firebase)
 
 
 
@@ -284,8 +284,8 @@ controlPanel model =
         , padding 20
         , height fill
         ] 
-        [ el [centerX] (Element.map mapFirebaseMsg (Firebase.viewUserControls model.firebase))
-        , el [centerX] (Element.map mapFirebaseMsg (Firebase.viewChatWindow model.firebase))
+        [ el [centerX] (Element.map mapFirebaseMsg (Chat.viewUserControls model.firebase))
+        , el [centerX] (Element.map mapFirebaseMsg (Chat.viewChatWindow model.firebase))
         ]
 
 playingArea : Model -> Element Msg
@@ -295,10 +295,10 @@ playingArea model =
         , width <| fillPortion 5
         ]
         [ 
-            if Firebase.isSignedIn model.firebase.firebase then
+            if Chat.isSignedIn model.firebase.firebase then
                 Poker.viewTable model.game
             else
-               Element.map mapFirebaseMsg (Firebase.viewUserControls model.firebase)
+               Element.map mapFirebaseMsg (Chat.viewUserControls model.firebase)
         , el [width fill  
             , Background.color <| rgb255 0 123 23
             ]

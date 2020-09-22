@@ -1,7 +1,7 @@
 {
   "name": "elm-poker",
   "version": "1.0.0",
-  "description": "A simple repository to show Elm integration with Firebase using ports",
+  "description": "A simple repository to show Elm integration with Chat using ports",
   "main": "src/index.js",
   "directories": {
     "test": "tests"
