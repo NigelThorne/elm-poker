@@ -50,6 +50,7 @@ import Element.Events exposing (..)
 import Chat
 import Html
 import Poker as Poker
+import Firebase 
 
 
 
@@ -295,7 +296,7 @@ playingArea model =
         , width <| fillPortion 5
         ]
         [ 
-            if Chat.isSignedIn model.firebase.firebase then
+            if Firebase.isSignedIn model.firebase.firebase then
                 Poker.viewTable model.game
             else
                Element.map mapFirebaseMsg (Chat.viewUserControls model.firebase)
