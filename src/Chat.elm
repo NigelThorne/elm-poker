@@ -136,16 +136,19 @@ type Msg
     | InputChanged String
     | MessagesReceived (Result Json.Decode.Error (List String))
     | EnterWasPressed
-    | Chat FirebaseMsg
+    | Firebase FirebaseMsg
 
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Chat fmsg ->
-            updateFirebase fmsg model
-
+        Firebase fmsg ->
+            let
+                (a,b) = updateFirebase fmsg model.firebase
+            in
+                ({model | firebase = a}, (Cmd.map (\x -> Firebase x) b))
+            
         SaveMessage ->
             ( { model | inputContent = "" }, saveMessage <| messageEncoder model )
 
@@ -163,39 +166,6 @@ update msg model =
         EnterWasPressed ->
             ( { model | inputContent = "" }, saveMessage <| messageEncoder model )
 
-
-setError : FirebaseModel -> ErrorData -> FirebaseModel
-setError model error =
-    { model | error = error }
-
-updateFirebase : FirebaseMsg -> Model -> (Model ,Cmd msg)
-updateFirebase msg model =
-    let
-        firebase =
-            model.firebase
-    in
-    case msg of
-        LogIn ->
-            ( model, signIn () )
-
-        LogOut ->
-            ( { model | firebase = { firebase | userData = Maybe.Nothing, error = emptyError } }, signOut () )
-
-        LoggedInData result ->
-            case result of
-                Ok value ->
-                    ( { model | firebase = { firebase | userData = Just value } }, Cmd.none )
-
-                Err error ->
-                    ( { model | firebase = { firebase | error = messageToError <| Json.Decode.errorToString error } }, Cmd.none )
-
-        LoggedInError result ->
-            case result of
-                Ok value ->
-                    ( { model | firebase = { firebase | error = value } }, Cmd.none )
-
-                Err error ->
-                    ( { model | firebase = { firebase | error = messageToError <| Json.Decode.errorToString error } }, Cmd.none )
 
 
 onEnter : msg -> Element.Attribute msg
@@ -229,10 +199,6 @@ messageEncoder model =
           )
         ]
 
-
-messageToError : String -> ErrorData
-messageToError message =
-    { code = Maybe.Nothing, credential = Maybe.Nothing, message = Just message }
 
 
 errorPrinter : ErrorData -> String
@@ -310,7 +276,7 @@ buttonStyle =
 
 viewUserControls : Model -> Element Msg
 viewUserControls model =
-    Element.map (\c -> Chat c) (viewFirebaseUserControls model.firebase)
+    Element.map (\c -> Firebase c) (viewFirebaseUserControls model.firebase)
 
 viewFirebaseUserControls : FirebaseModel -> Element FirebaseMsg
 viewFirebaseUserControls model =
@@ -416,7 +382,7 @@ viewChatWindow model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Sub.map (\x -> Chat x) (signInInfo (Json.Decode.decodeValue userDataDecoder >> LoggedInData))
-        , Sub.map (\x -> Chat x) (signInError (Json.Decode.decodeValue logInErrorDecoder >> LoggedInError))
+        [ Sub.map (\x -> Firebase x) (signInInfo (Json.Decode.decodeValue userDataDecoder >> LoggedInData))
+        , Sub.map (\x -> Firebase x) (signInError (Json.Decode.decodeValue logInErrorDecoder >> LoggedInError))
         , receiveMessages (Json.Decode.decodeValue messageListDecoder >> MessagesReceived)
         ]

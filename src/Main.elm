@@ -47,10 +47,10 @@ import Browser
 import Element exposing (..)
 import Element.Background as Background
 import Element.Events exposing (..)
-import Chat
+import Firebase
 import Html
 import Poker as Poker
-import Firebase 
+import Chat 
 
 
 
