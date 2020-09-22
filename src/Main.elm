@@ -295,7 +295,7 @@ playingArea model =
         , width <| fillPortion 5
         ]
         [ 
-            if Firebase.isSignedIn model.firebase then
+            if Firebase.isSignedIn model.firebase.firebase then
                 Poker.viewTable model.game
             else
                Element.map mapFirebaseMsg (Firebase.viewUserControls model.firebase)

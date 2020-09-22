@@ -115,11 +115,15 @@ type alias FirebaseModel =
 
 init : Model
 init =
-    { firebase = { userData = Maybe.Nothing, error = emptyError}, inputContent = "", messages = [] }
+    { firebase = initFirebase, inputContent = "", messages = [] }
 
-isSignedIn : Model -> Bool 
+initFirebase : FirebaseModel
+initFirebase =
+    { userData = Maybe.Nothing, error = emptyError}
+
+isSignedIn : FirebaseModel -> Bool 
 isSignedIn model =
-    case model.firebase.userData of
+    case model.userData of
         Nothing -> False
         _ -> True
 
