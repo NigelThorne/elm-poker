@@ -73,10 +73,14 @@ type alias UserData =
 
 
 type alias Model =
-    { userData : Maybe UserData
-    , error : ErrorData
+    { firebase : FirebaseModel
     , inputContent : String
     , messages : List String
+    }
+
+type alias FirebaseModel =
+    { userData : Maybe UserData
+    , error : ErrorData
     }
 
 {-
@@ -111,11 +115,11 @@ type alias Model =
 
 init : Model
 init =
-    { userData = Maybe.Nothing, error = emptyError, inputContent = "", messages = [] }
+    { firebase = { userData = Maybe.Nothing, error = emptyError}, inputContent = "", messages = [] }
 
 isSignedIn : Model -> Bool 
 isSignedIn model =
-    case model.userData of
+    case model.firebase.userData of
         Nothing -> False
         _ -> True
 
@@ -168,45 +172,49 @@ emptyError =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        LogIn ->
-            ( model, signIn () )
+    let
+        firebase = model.firebase                
+    in
+        case msg of
+            LogIn ->
+                ( model, signIn () )
 
-        LogOut ->
-            ( { model | userData = Maybe.Nothing, error = emptyError }, signOut () )
+            LogOut ->
+                
+                ( { model | firebase = { firebase | userData = Maybe.Nothing, error = emptyError }}, signOut () )
 
-        LoggedInData result ->
-            case result of
-                Ok value ->
-                    ( { model | userData = Just value }, Cmd.none )
+            LoggedInData result ->
+                case result of
+                    Ok value ->
+                        ( { model | firebase = {firebase | userData = Just value }}, Cmd.none )
 
-                Err error ->
-                    ( { model | error = messageToError <| Json.Decode.errorToString error }, Cmd.none )
+                    Err error ->
+                        ( { model | firebase = {firebase | error = messageToError <| Json.Decode.errorToString error} }, Cmd.none )
 
-        LoggedInError result ->
-            case result of
-                Ok value ->
-                    ( { model | error = value }, Cmd.none )
+            LoggedInError result ->
+                case result of
+                    Ok value ->
+                        ( { model | firebase = {firebase | error = value} }, Cmd.none )
 
-                Err error ->
-                    ( { model | error = messageToError <| Json.Decode.errorToString error }, Cmd.none )
+                    Err error ->
+                        ( { model | firebase = {firebase |error = messageToError <| Json.Decode.errorToString error }}, Cmd.none )
 
-        SaveMessage ->
-            ( {model | inputContent = ""}, saveMessage <| messageEncoder model )
+            SaveMessage ->
+                ( {model | inputContent = ""}, saveMessage <| messageEncoder model )
 
-        InputChanged value ->
-            ( { model | inputContent = value }, Cmd.none )
+            InputChanged value ->
+                ( { model | inputContent = value }, Cmd.none )
 
-        MessagesReceived result ->
-            case result of
-                Ok value ->
-                    ( { model | messages = value }, Cmd.none )
+            MessagesReceived result ->
+                case result of
+                    Ok value ->
+                        ( { model | messages = value }, Cmd.none )
 
-                Err error ->
-                    ( { model | error = messageToError <| Json.Decode.errorToString error }, Cmd.none )
+                    Err error ->
+                        ( { model | firebase = {firebase |error = messageToError <| Json.Decode.errorToString error }}, Cmd.none )
 
-        EnterWasPressed -> 
-            ( {model | inputContent = ""}, saveMessage <| messageEncoder model)
+            EnterWasPressed -> 
+                ( {model | inputContent = ""}, saveMessage <| messageEncoder model)
 
 onEnter : msg -> Element.Attribute msg
 onEnter msg =
@@ -229,7 +237,7 @@ messageEncoder model =
     Json.Encode.object
         [ ( "content", Json.Encode.string model.inputContent )
         , ( "uid"
-          , case model.userData of
+          , case model.firebase.userData of
                 Just userData ->
                     Json.Encode.string userData.uid
 
@@ -324,7 +332,7 @@ viewUserControls model =
         ]
         [ el []
             (
-                case model.userData of
+                case model.firebase.userData of
                     Just data ->
                         column [spacing 10, centerX] 
                         [ text "You are logged in as: "
@@ -347,7 +355,7 @@ viewChatWindow model =
         , spacing 20 
         , centerX ]
         [ 
-         case model.userData of
+         case model.firebase.userData of
             Just _ ->
                 column [spacing 10, centerX ]
                     [ Input.text
@@ -380,7 +388,7 @@ viewChatWindow model =
                         model.messages
                 ]
             ]
-        , el [] (text <| errorPrinter model.error)
+        , el [] (text <| errorPrinter model.firebase.error)
         ]
 
 
