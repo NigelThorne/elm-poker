@@ -17,6 +17,7 @@ module Main exposing (main)
 -- firebase -- share deck
 -- ✅ card colors, table color, card backings
 -- ✅ name players
+-- ✅ messages in order
 -- detect winner
 -- one button does all steps.. dealer presses button...
 -- show odds

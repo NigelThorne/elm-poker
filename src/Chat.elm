@@ -1,10 +1,5 @@
 port module Chat exposing (Model, Msg(..), init, subscriptions, update, viewChatWindow)
 
--- import Browser
--- import Html exposing (Html, button, div, h1, h2, h3, img, input, p, text)
--- import Html.Attributes exposing (placeholder, src, value)
--- import Html.Events exposing (onClick, onInput)
-
 import Element exposing (..)
 import Element.Border as Border
 import Element.Events exposing (..)
@@ -57,7 +52,13 @@ port receiveMessages : (Json.Encode.Value -> msg) -> Sub msg
 
 type alias Model =
     { inputContent : String
-    , messages : List String
+    , messages : List Message
+    }
+
+
+type alias Message =
+    { text : String
+    , timestamp : Int
     }
 
 
@@ -133,7 +134,7 @@ init =
 type Msg
     = SaveMessage
     | InputChanged String
-    | MessagesReceived (Result Json.Decode.Error (List String))
+    | MessagesReceived (Result Json.Decode.Error (List Message))
     | EnterWasPressed
 
 
@@ -149,15 +150,13 @@ update msg model firebase =
         MessagesReceived result ->
             case result of
                 Ok value ->
-                    ( { model | messages = value }, firebase, Cmd.none )
+                    ( { model | messages = value |> List.sortBy (\v -> -v.timestamp) }, firebase, Cmd.none )
 
                 Err error ->
-                    ( model,  Firebase.setError firebase error , Cmd.none )
+                    ( model, Firebase.setError firebase error, Cmd.none )
 
         EnterWasPressed ->
             ( { model | inputContent = "" }, firebase, saveMessage <| messageEncoder model firebase )
-            
-
 
 
 onEnter : msg -> Element.Attribute msg
@@ -182,14 +181,17 @@ messageEncoder model firebase =
     Firebase.messageEncoder firebase model.inputContent
 
 
-messagesDecoder =
-    Json.Decode.decodeString (Json.Decode.list Json.Decode.string)
+messageDecoder : Json.Decode.Decoder Message
+messageDecoder =
+    Json.Decode.succeed Message
+        |> Json.Decode.Pipeline.required "text" Json.Decode.string
+        |> Json.Decode.Pipeline.required "timestamp" Json.Decode.int
 
 
-messageListDecoder : Json.Decode.Decoder (List String)
+messageListDecoder : Json.Decode.Decoder (List Message)
 messageListDecoder =
     Json.Decode.succeed identity
-        |> Json.Decode.Pipeline.required "messages" (Json.Decode.list Json.Decode.string)
+        |> Json.Decode.Pipeline.required "messages" (Json.Decode.list messageDecoder)
 
 
 
@@ -222,7 +224,6 @@ messageListDecoder =
 
 
 -}
-
 
 
 viewChatWindow : Model -> Firebase.Model -> Element Msg
@@ -261,7 +262,7 @@ viewChatWindow model firebase =
                 [ text "Previous messages"
                 , column [] <|
                     List.map
-                        (\m -> paragraph [] [ text m ])
+                        (\m -> paragraph [] [ text m.text ])
                         model.messages
                 ]
             ]

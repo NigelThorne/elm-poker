@@ -96,12 +96,12 @@ app.ports.saveMessage.subscribe(data => {
 
   db.collection(`users/${data.uid}/messages`)
     .add({
-      content: data.content
+      content: { text: data.content, timestamp: Date.now() },
     })
-    .catch(error => {
+    .catch((error) => {
       app.ports.signInError.send({
         code: error.code,
-        message: error.message
+        message: error.message,
       });
     });
 });

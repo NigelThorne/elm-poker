@@ -569,7 +569,7 @@ viewCard card =
 
         -- , Element.explain Debug.todo
         ]
-        (el [moveUp 23]
+        (el [moveUp 18]
             (text (cardText card))
         )
 
