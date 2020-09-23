@@ -1,4 +1,4 @@
-port module Firebase exposing (..)
+port module Firebase exposing (Model, setError, messageEncoder, errorPrinter,Msg(..),init,update,subscriptions, isSignedIn)
 
 import Json.Decode
 import Json.Encode
@@ -41,7 +41,6 @@ init : Model
 init =
     { userData = Maybe.Nothing, error = emptyError }
 
-
 isSignedIn : Model -> Bool
 isSignedIn model =
     case model.userData of
@@ -50,7 +49,6 @@ isSignedIn model =
 
         _ ->
             True
-
 
 emptyError : ErrorData
 emptyError =

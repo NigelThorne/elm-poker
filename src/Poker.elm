@@ -8,55 +8,57 @@ import Element.Font as Font
 import Element.Input as Input
 import Random
 import Random.Extra
-import Element.Font exposing (center)
+
 
 
 {-
- 
-                                                                                                     
-                                                             dddddddd                                
- MMMMMMMM               MMMMMMMM                             d::::::d                   lllllll      
- M:::::::M             M:::::::M                             d::::::d                   l:::::l      
- M::::::::M           M::::::::M                             d::::::d                   l:::::l      
- M:::::::::M         M:::::::::M                             d:::::d                    l:::::l      
- M::::::::::M       M::::::::::M   ooooooooooo       ddddddddd:::::d     eeeeeeeeeeee    l::::l      
- M:::::::::::M     M:::::::::::M oo:::::::::::oo   dd::::::::::::::d   ee::::::::::::ee  l::::l      
- M:::::::M::::M   M::::M:::::::Mo:::::::::::::::o d::::::::::::::::d  e::::::eeeee:::::eel::::l      
- M::::::M M::::M M::::M M::::::Mo:::::ooooo:::::od:::::::ddddd:::::d e::::::e     e:::::el::::l      
- M::::::M  M::::M::::M  M::::::Mo::::o     o::::od::::::d    d:::::d e:::::::eeeee::::::el::::l      
- M::::::M   M:::::::M   M::::::Mo::::o     o::::od:::::d     d:::::d e:::::::::::::::::e l::::l      
- M::::::M    M:::::M    M::::::Mo::::o     o::::od:::::d     d:::::d e::::::eeeeeeeeeee  l::::l      
- M::::::M     MMMMM     M::::::Mo::::o     o::::od:::::d     d:::::d e:::::::e           l::::l      
- M::::::M               M::::::Mo:::::ooooo:::::od::::::ddddd::::::dde::::::::e         l::::::l     
- M::::::M               M::::::Mo:::::::::::::::o d:::::::::::::::::d e::::::::eeeeeeee l::::::l     
- M::::::M               M::::::M oo:::::::::::oo   d:::::::::ddd::::d  ee:::::::::::::e l::::::l     
- MMMMMMMM               MMMMMMMM   ooooooooooo      ddddddddd   ddddd    eeeeeeeeeeeeee llllllll     
-                                                                                                     
-                                                                                                     
-                                                                                                     
-                                                                                                     
-                                                                                                     
-                                                                                                     
-                                                                                                     
- 
+
+
+                                                               dddddddd
+   MMMMMMMM               MMMMMMMM                             d::::::d                   lllllll
+   M:::::::M             M:::::::M                             d::::::d                   l:::::l
+   M::::::::M           M::::::::M                             d::::::d                   l:::::l
+   M:::::::::M         M:::::::::M                             d:::::d                    l:::::l
+   M::::::::::M       M::::::::::M   ooooooooooo       ddddddddd:::::d     eeeeeeeeeeee    l::::l
+   M:::::::::::M     M:::::::::::M oo:::::::::::oo   dd::::::::::::::d   ee::::::::::::ee  l::::l
+   M:::::::M::::M   M::::M:::::::Mo:::::::::::::::o d::::::::::::::::d  e::::::eeeee:::::eel::::l
+   M::::::M M::::M M::::M M::::::Mo:::::ooooo:::::od:::::::ddddd:::::d e::::::e     e:::::el::::l
+   M::::::M  M::::M::::M  M::::::Mo::::o     o::::od::::::d    d:::::d e:::::::eeeee::::::el::::l
+   M::::::M   M:::::::M   M::::::Mo::::o     o::::od:::::d     d:::::d e:::::::::::::::::e l::::l
+   M::::::M    M:::::M    M::::::Mo::::o     o::::od:::::d     d:::::d e::::::eeeeeeeeeee  l::::l
+   M::::::M     MMMMM     M::::::Mo::::o     o::::od:::::d     d:::::d e:::::::e           l::::l
+   M::::::M               M::::::Mo:::::ooooo:::::od::::::ddddd::::::dde::::::::e         l::::::l
+   M::::::M               M::::::Mo:::::::::::::::o d:::::::::::::::::d e::::::::eeeeeeee l::::::l
+   M::::::M               M::::::M oo:::::::::::oo   d:::::::::ddd::::d  ee:::::::::::::e l::::::l
+   MMMMMMMM               MMMMMMMM   ooooooooooo      ddddddddd   ddddd    eeeeeeeeeeeeee llllllll
+
+
+
+
+
+
+
+
 -}
+
+
 type alias Game =
-    { hands : List Hand
+    { players : List Player
     , deck : Deck
-    , flop : Maybe ( Card, Card, Card )
-    , turn : Maybe Card
-    , river : Maybe Card
-    , x : Maybe ShuffleKey
+    , community : List Card
+    , steps : List Msg
     }
 
-type alias Hand =
+
+type alias Player =
     { cards : List Card
-    , player : String
+    , name : String
     }
 
 
 type alias Deck =
     { cards : List Card }
+
 
 type alias Card =
     { face : Face
@@ -65,19 +67,20 @@ type alias Card =
     }
 
 
-type Face = Ace
-            | Two
-            | Three
-            | Four
-            | Five
-            | Six
-            | Seven
-            | Eight
-            | Nine
-            | Ten
-            | Jack
-            | Queen
-            | King
+type Face
+    = Ace
+    | Two
+    | Three
+    | Four
+    | Five
+    | Six
+    | Seven
+    | Eight
+    | Nine
+    | Ten
+    | Jack
+    | Queen
+    | King
 
 
 type Suit
@@ -92,6 +95,10 @@ type Facing
     | FaceDown
 
 
+type Status
+    = Loading
+    | Loaded Deck
+    | Errored
 
 
 allSuites : List Suit
@@ -122,6 +129,7 @@ allCardsInDeck =
 newDeck : Deck
 newDeck =
     Deck allCardsInDeck
+
 
 dealCardToCardList : List Card -> Deck -> ( List Card, Deck )
 dealCardToCardList cards deck =
@@ -195,7 +203,7 @@ removeAnyCardFromCardList cards index =
     ( card, header ++ rest )
 
 
-dealACardToAHand : Hand -> Deck -> ( Hand, Deck )
+dealACardToAHand : Player -> Deck -> ( Player, Deck )
 dealACardToAHand hand deck =
     let
         ( card, deck2 ) =
@@ -204,9 +212,9 @@ dealACardToAHand hand deck =
     ( { hand | cards = addCard card hand.cards }, deck2 )
 
 
-dealACardToEachHand : List Hand -> Deck -> ( List Hand, Deck )
-dealACardToEachHand hands fullDeck =
-    case hands of
+dealACardToEachHand : List Player -> Deck -> ( List Player, Deck )
+dealACardToEachHand players fullDeck =
+    case players of
         [] ->
             ( [], fullDeck )
 
@@ -217,12 +225,16 @@ dealACardToEachHand hands fullDeck =
             in
             let
                 ( dealtHands, restOfDeck ) =
-                    dealACardToEachHand rest remainingDeck -- recursive
+                    dealACardToEachHand rest remainingDeck
+
+                -- recursive
             in
             ( newHand :: dealtHands, restOfDeck )
 
 
-type alias ShuffleKey = List Int
+type alias ShuffleKey =
+    List Int
+
 
 shuffleKeyGenerator : Int -> Random.Generator ShuffleKey
 shuffleKeyGenerator size =
@@ -262,103 +274,99 @@ pickCardListUsingKeyList keylist offset cards =
                     c :: pickCardListUsingKeyList keysRest (offset + key) shortList
 
 
-
 flopCards : Game -> List Card
 flopCards model =
-    case model.flop of
-        Just ( a, b, c ) ->
+    case model.community of
+        [a,b,c,_] ->
             [ a, b, c ]
 
-        Nothing ->
+        _ ->
             []
+
 
 tableCards : Game -> List Card
 tableCards game =
-    (flopCards game)
-    ++ (case game.turn of
-            Nothing -> []
-            Just t -> [t])
-    ++ (case game.river of
-            Nothing -> []
-            Just r -> [r])
-
-
+    game.community
 
 {-
- 
-                                                         
-                                                         
- IIIIIIIIII                  iiii          tttt          
- I::::::::I                 i::::i      ttt:::t          
- I::::::::I                  iiii       t:::::t          
- II::::::II                             t:::::t          
-   I::::Innnn  nnnnnnnn    iiiiiiittttttt:::::ttttttt    
-   I::::In:::nn::::::::nn  i:::::it:::::::::::::::::t    
-   I::::In::::::::::::::nn  i::::it:::::::::::::::::t    
-   I::::Inn:::::::::::::::n i::::itttttt:::::::tttttt    
-   I::::I  n:::::nnnn:::::n i::::i      t:::::t          
-   I::::I  n::::n    n::::n i::::i      t:::::t          
-   I::::I  n::::n    n::::n i::::i      t:::::t          
-   I::::I  n::::n    n::::n i::::i      t:::::t    tttttt
- II::::::IIn::::n    n::::ni::::::i     t::::::tttt:::::t
- I::::::::In::::n    n::::ni::::::i     tt::::::::::::::t
- I::::::::In::::n    n::::ni::::::i       tt:::::::::::tt
- IIIIIIIIIInnnnnn    nnnnnniiiiiiii         ttttttttttt  
-                                                         
-                                                         
-                                                         
-                                                         
-                                                         
-                                                         
-                                                         
- 
+
+
+
+   IIIIIIIIII                  iiii          tttt
+   I::::::::I                 i::::i      ttt:::t
+   I::::::::I                  iiii       t:::::t
+   II::::::II                             t:::::t
+     I::::Innnn  nnnnnnnn    iiiiiiittttttt:::::ttttttt
+     I::::In:::nn::::::::nn  i:::::it:::::::::::::::::t
+     I::::In::::::::::::::nn  i::::it:::::::::::::::::t
+     I::::Inn:::::::::::::::n i::::itttttt:::::::tttttt
+     I::::I  n:::::nnnn:::::n i::::i      t:::::t
+     I::::I  n::::n    n::::n i::::i      t:::::t
+     I::::I  n::::n    n::::n i::::i      t:::::t
+     I::::I  n::::n    n::::n i::::i      t:::::t    tttttt
+   II::::::IIn::::n    n::::ni::::::i     t::::::tttt:::::t
+   I::::::::In::::n    n::::ni::::::i     tt::::::::::::::t
+   I::::::::In::::n    n::::ni::::::i       tt:::::::::::tt
+   IIIIIIIIIInnnnnn    nnnnnniiiiiiii         ttttttttttt
+
+
+
+
+
+
+
+
 -}
 
+
 initRounds : List Msg
-initRounds = 
-    [ShuffleDeck, DealHands, Betting, Flop, Betting, Turn, Betting, River, Betting, PayWinnings]
+initRounds =
+    [ ShuffleDeck, DealHands, Betting, Flop, Betting, Turn, Betting, River, Betting, PayWinnings ]
 
-initHands : List Hand
+
+initHands : List Player
 initHands =
-    [ Hand [] "Bob", Hand [] "Jane", Hand [] "Freddy" ]
+    [ Player [] "Bob", Player [] "Jane", Player [] "Freddy" ]
 
+initSteps : List Msg
+initSteps = [ShuffleDeck, DealHands, Flop, Turn, River]
 
 initGame : Game
 initGame =
-    Game initHands newDeck Nothing Nothing Nothing Nothing
-
+    Game initHands newDeck [] initSteps
 
 
 
 {-
- 
-                                                                                                                         
-                                                     dddddddd                                                            
- UUUUUUUU     UUUUUUUU                               d::::::d                          tttt                              
- U::::::U     U::::::U                               d::::::d                       ttt:::t                              
- U::::::U     U::::::U                               d::::::d                       t:::::t                              
- UU:::::U     U:::::UU                               d:::::d                        t:::::t                              
-  U:::::U     U:::::Uppppp   ppppppppp       ddddddddd:::::d   aaaaaaaaaaaaa  ttttttt:::::ttttttt        eeeeeeeeeeee    
-  U:::::D     D:::::Up::::ppp:::::::::p    dd::::::::::::::d   a::::::::::::a t:::::::::::::::::t      ee::::::::::::ee  
-  U:::::D     D:::::Up:::::::::::::::::p  d::::::::::::::::d   aaaaaaaaa:::::at:::::::::::::::::t     e::::::eeeee:::::ee
-  U:::::D     D:::::Upp::::::ppppp::::::pd:::::::ddddd:::::d            a::::atttttt:::::::tttttt    e::::::e     e:::::e
-  U:::::D     D:::::U p:::::p     p:::::pd::::::d    d:::::d     aaaaaaa:::::a      t:::::t          e:::::::eeeee::::::e
-  U:::::D     D:::::U p:::::p     p:::::pd:::::d     d:::::d   aa::::::::::::a      t:::::t          e:::::::::::::::::e 
-  U:::::D     D:::::U p:::::p     p:::::pd:::::d     d:::::d  a::::aaaa::::::a      t:::::t          e::::::eeeeeeeeeee  
-  U::::::U   U::::::U p:::::p    p::::::pd:::::d     d:::::d a::::a    a:::::a      t:::::t    tttttte:::::::e           
-  U:::::::UUU:::::::U p:::::ppppp:::::::pd::::::ddddd::::::dda::::a    a:::::a      t::::::tttt:::::te::::::::e          
-   UU:::::::::::::UU  p::::::::::::::::p  d:::::::::::::::::da:::::aaaa::::::a      tt::::::::::::::t e::::::::eeeeeeee  
-     UU:::::::::UU    p::::::::::::::pp    d:::::::::ddd::::d a::::::::::aa:::a       tt:::::::::::tt  ee:::::::::::::e  
-       UUUUUUUUU      p::::::pppppppp       ddddddddd   ddddd  aaaaaaaaaa  aaaa         ttttttttttt      eeeeeeeeeeeeee  
-                      p:::::p                                                                                            
-                      p:::::p                                                                                            
-                     p:::::::p                                                                                           
-                     p:::::::p                                                                                           
-                     p:::::::p                                                                                           
-                     ppppppppp                                                                                           
-                                                                                                                         
- 
+
+
+                                                       dddddddd
+   UUUUUUUU     UUUUUUUU                               d::::::d                          tttt
+   U::::::U     U::::::U                               d::::::d                       ttt:::t
+   U::::::U     U::::::U                               d::::::d                       t:::::t
+   UU:::::U     U:::::UU                               d:::::d                        t:::::t
+    U:::::U     U:::::Uppppp   ppppppppp       ddddddddd:::::d   aaaaaaaaaaaaa  ttttttt:::::ttttttt        eeeeeeeeeeee
+    U:::::D     D:::::Up::::ppp:::::::::p    dd::::::::::::::d   a::::::::::::a t:::::::::::::::::t      ee::::::::::::ee
+    U:::::D     D:::::Up:::::::::::::::::p  d::::::::::::::::d   aaaaaaaaa:::::at:::::::::::::::::t     e::::::eeeee:::::ee
+    U:::::D     D:::::Upp::::::ppppp::::::pd:::::::ddddd:::::d            a::::atttttt:::::::tttttt    e::::::e     e:::::e
+    U:::::D     D:::::U p:::::p     p:::::pd::::::d    d:::::d     aaaaaaa:::::a      t:::::t          e:::::::eeeee::::::e
+    U:::::D     D:::::U p:::::p     p:::::pd:::::d     d:::::d   aa::::::::::::a      t:::::t          e:::::::::::::::::e
+    U:::::D     D:::::U p:::::p     p:::::pd:::::d     d:::::d  a::::aaaa::::::a      t:::::t          e::::::eeeeeeeeeee
+    U::::::U   U::::::U p:::::p    p::::::pd:::::d     d:::::d a::::a    a:::::a      t:::::t    tttttte:::::::e
+    U:::::::UUU:::::::U p:::::ppppp:::::::pd::::::ddddd::::::dda::::a    a:::::a      t::::::tttt:::::te::::::::e
+     UU:::::::::::::UU  p::::::::::::::::p  d:::::::::::::::::da:::::aaaa::::::a      tt::::::::::::::t e::::::::eeeeeeee
+       UU:::::::::UU    p::::::::::::::pp    d:::::::::ddd::::d a::::::::::aa:::a       tt:::::::::::tt  ee:::::::::::::e
+         UUUUUUUUU      p::::::pppppppp       ddddddddd   ddddd  aaaaaaaaaa  aaaa         ttttttttttt      eeeeeeeeeeeeee
+                        p:::::p
+                        p:::::p
+                       p:::::::p
+                       p:::::::p
+                       p:::::::p
+                       ppppppppp
+
+
 -}
+
 
 type Msg
     = ShuffleDeck
@@ -400,7 +408,7 @@ update msg game =
             )
 
         ShuffleDeckUsingRandomKey keylist ->
-            ( { game | deck = shuffleDeckWithKeyList keylist game.deck, x = Just keylist }
+            ( { game | deck = shuffleDeckWithKeyList keylist game.deck }
             , Cmd.none
             )
 
@@ -409,91 +417,72 @@ update msg game =
             , Cmd.none
             )
 
-
         PayWinnings ->
             ( game |> river
             , Cmd.none
             )
 
 
-
 flop : Game -> Game
 flop game =
-    case game.flop of
-        Just _ -> game
-        Nothing -> 
-            let
-                ( cards, remains ) =
-                    dealCardsToCardList [] game.deck 3
-            in
-            case cards of
-                a :: b :: c :: [] ->
-                    { game | flop = Just ( a, b, c ), deck = remains }
+    dealCardsToCommunity 3 game
 
-                _ ->
-                    game
+dealCardsToCommunity : Int -> Game -> Game
+dealCardsToCommunity count game = 
+    let
+        ( cards, remains ) = dealCardsToCardList game.community game.deck count
+    in
+        {game | deck = remains, community = cards}
+
 
 turn : Game -> Game
 turn game =
-    case game.turn of
-        Just _ -> game
-        Nothing -> 
-            let
-                ( card, deck ) =
-                    removeTopCardFromDeck game.deck
-            in
-            { game | turn = card, deck = deck }
+    dealCardsToCommunity 2 game
 
 
 river : Game -> Game
 river game =
-    case game.river of
-        Just _ -> game
-        Nothing -> 
-            let
-                ( card, deck ) =
-                    removeTopCardFromDeck game.deck
-            in
-            { game | river = card, deck = deck }
+    dealCardsToCommunity 1 game
 
 
 dealCard : Game -> Game
 dealCard game =
     let
-        ( hands, deck ) =
-            dealACardToEachHand game.hands game.deck
+        ( players, deck ) =
+            dealACardToEachHand game.players game.deck
     in
-    { game | hands = hands, deck = deck }
+    { game | players = players, deck = deck }
+
 
 
 {-
- 
-                                                                                              
-                                                                                              
- VVVVVVVV           VVVVVVVV iiii                                                             
- V::::::V           V::::::Vi::::i                                                            
- V::::::V           V::::::V iiii                                                             
- V::::::V           V::::::V                                                                  
-  V:::::V           V:::::Viiiiiii     eeeeeeeeeeee  wwwwwww           wwwww           wwwwwww
-   V:::::V         V:::::V i:::::i   ee::::::::::::ee w:::::w         w:::::w         w:::::w 
-    V:::::V       V:::::V   i::::i  e::::::eeeee:::::eew:::::w       w:::::::w       w:::::w  
-     V:::::V     V:::::V    i::::i e::::::e     e:::::e w:::::w     w:::::::::w     w:::::w   
-      V:::::V   V:::::V     i::::i e:::::::eeeee::::::e  w:::::w   w:::::w:::::w   w:::::w    
-       V:::::V V:::::V      i::::i e:::::::::::::::::e    w:::::w w:::::w w:::::w w:::::w     
-        V:::::V:::::V       i::::i e::::::eeeeeeeeeee      w:::::w:::::w   w:::::w:::::w      
-         V:::::::::V        i::::i e:::::::e                w:::::::::w     w:::::::::w       
-          V:::::::V        i::::::ie::::::::e                w:::::::w       w:::::::w        
-           V:::::V         i::::::i e::::::::eeeeeeee         w:::::w         w:::::w         
-            V:::V          i::::::i  ee:::::::::::::e          w:::w           w:::w          
-             VVV           iiiiiiii    eeeeeeeeeeeeee           www             www           
-                                                                                              
-                                                                                              
-                                                                                              
-                                                                                              
-                                                                                              
-                                                                                              
-                                                                                              
- 
+
+
+
+   VVVVVVVV           VVVVVVVV iiii
+   V::::::V           V::::::Vi::::i
+   V::::::V           V::::::V iiii
+   V::::::V           V::::::V
+    V:::::V           V:::::Viiiiiii     eeeeeeeeeeee  wwwwwww           wwwww           wwwwwww
+     V:::::V         V:::::V i:::::i   ee::::::::::::ee w:::::w         w:::::w         w:::::w
+      V:::::V       V:::::V   i::::i  e::::::eeeee:::::eew:::::w       w:::::::w       w:::::w
+       V:::::V     V:::::V    i::::i e::::::e     e:::::e w:::::w     w:::::::::w     w:::::w
+        V:::::V   V:::::V     i::::i e:::::::eeeee::::::e  w:::::w   w:::::w:::::w   w:::::w
+         V:::::V V:::::V      i::::i e:::::::::::::::::e    w:::::w w:::::w w:::::w w:::::w
+          V:::::V:::::V       i::::i e::::::eeeeeeeeeee      w:::::w:::::w   w:::::w:::::w
+           V:::::::::V        i::::i e:::::::e                w:::::::::w     w:::::::::w
+            V:::::::V        i::::::ie::::::::e                w:::::::w       w:::::::w
+             V:::::V         i::::::i e::::::::eeeeeeee         w:::::w         w:::::w
+              V:::V          i::::::i  ee:::::::::::::e          w:::w           w:::w
+               VVV           iiiiiiii    eeeeeeeeeeeeee           www             www
+
+
+
+
+
+
+
+
 -}
 
 
@@ -513,7 +502,7 @@ viewTable model =
         ]
         --        [ debuggingInformation model
         [ viewTableCards model
-        , viewHands model.hands
+        , viewHands model.players
         ]
 
 
@@ -521,19 +510,19 @@ debuggingInformation model =
     el [] (text <| Debug.toString <| model.x)
 
 
-viewHands : List Hand -> Element msg
-viewHands hands =
+viewHands : List Player -> Element msg
+viewHands players =
     row
         [ spacing 100
         , height <| px 135
         , centerX
         ]
-        (List.map viewHand hands)
+        (List.map viewHand players)
 
 
-viewHand : Hand -> Element msg
+viewHand : Player -> Element msg
 viewHand hand =
-    column [ spacing 10 ] [ row [spacing 10] (viewCards hand.cards), el [ centerX ] (text hand.player) ]
+    column [ spacing 10 ] [ row [ spacing 10 ] (viewCards hand.cards), el [ centerX ] (text hand.name) ]
 
 
 viewTableCards : Game -> Element msg
@@ -548,11 +537,9 @@ viewTableCards model =
         (viewCards <| tableCards model)
 
 
-
 viewCards : List Card -> List (Element msg)
 viewCards cards =
     List.map viewCard cards
-
 
 
 viewCard : Card -> Element msg
@@ -569,7 +556,7 @@ viewCard card =
 
         -- , Element.explain Debug.todo
         ]
-        (el [moveUp 18]
+        (el [ moveUp 18 ]
             (text (cardText card))
         )
 
@@ -637,6 +624,7 @@ buttonstyle =
     , Font.color <| rgb255 255 255 255
     ]
 
+
 color : Card -> String
 color card =
     case card.suit of
@@ -651,6 +639,7 @@ color card =
 
         Spade ->
             "#010b8b"
+
 
 cardText : Card -> String
 cardText card =

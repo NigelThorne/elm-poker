@@ -5,7 +5,7 @@ module Main exposing (main)
 -- ✅ deal card from deck
 -- ✅ deal random card from deck
 -- ✅ shuffle up front
--- ✅ hand per player
+-- ✅ hand per name
 -- ✅ start with 2 cards
 -- ✅ flop
 -- ✅ turn
