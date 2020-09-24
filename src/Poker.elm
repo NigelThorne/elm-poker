@@ -8,6 +8,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Random
 import Random.Extra
+import Html exposing (b)
 
 
 
@@ -100,6 +101,9 @@ type Status
     | Loaded Deck
     | Errored
 
+type alias ShuffleKey =
+    List Int
+
 
 allSuites : List Suit
 allSuites =
@@ -116,10 +120,6 @@ allCardsInSuit suit =
     List.map (\face -> Card face suit FaceUp) allFaces
 
 
-flipCard : Facing -> Card -> Card
-flipCard facing card =
-    { card | facing = facing }
-
 
 allCardsInDeck : List Card
 allCardsInDeck =
@@ -131,17 +131,23 @@ newDeck =
     Deck allCardsInDeck
 
 
-dealCardToCardList : List Card -> Deck -> ( List Card, Deck )
-dealCardToCardList cards deck =
+flipCard : Facing -> Card -> Card
+flipCard facing card =
+    { card | facing = facing }
+
+
+
+dealCardToCardList : (List Card, Deck) -> ( List Card, Deck )
+dealCardToCardList (cards, deck) =
     let
         ( card, deck2 ) =
             removeTopCardFromDeck deck
     in
-    ( addCard card cards, deck2 )
+        ( addCard card cards, deck2 )
 
 
-dealCardsToCardList : List Card -> Deck -> Int -> ( List Card, Deck )
-dealCardsToCardList cards deck count =
+dealCardsToCardList : (List Card, Deck) -> Int -> ( List Card, Deck )
+dealCardsToCardList (cards, deck) count =
     case count of
         0 ->
             ( cards, deck )
@@ -149,9 +155,9 @@ dealCardsToCardList cards deck count =
         n ->
             let
                 ( dealt, remains ) =
-                    dealCardToCardList cards deck
+                    dealCardToCardList (cards, deck)
             in
-            dealCardsToCardList dealt remains (n - 1)
+                dealCardsToCardList (dealt, remains) (n - 1)
 
 
 addCard : Maybe Card -> List Card -> List Card
@@ -167,7 +173,6 @@ addCard card cards =
 deckSize : Deck -> Int
 deckSize deck =
     List.length deck.cards
-
 
 removeTopCardFromDeck : Deck -> ( Maybe Card, Deck )
 removeTopCardFromDeck deck =
@@ -212,48 +217,43 @@ dealACardToAHand hand deck =
     ( { hand | cards = addCard card hand.cards }, deck2 )
 
 
-dealACardToEachHand : List Player -> Deck -> ( List Player, Deck )
-dealACardToEachHand players fullDeck =
-    case players of
-        [] ->
-            ( [], fullDeck )
 
-        hand :: rest ->
-            let
-                ( newHand, remainingDeck ) =
-                    dealACardToAHand hand fullDeck
-            in
-            let
-                ( dealtHands, restOfDeck ) =
-                    dealACardToEachHand rest remainingDeck
-
-                -- recursive
-            in
-            ( newHand :: dealtHands, restOfDeck )
+dealCardsToEachHand : (List Player, Deck) -> Int -> ( List Player, Deck )
+dealCardsToEachHand state count =
+    repeatedly dealACardToEachHand count state
 
 
-type alias ShuffleKey =
-    List Int
+repeatedly : (a -> a) -> Int -> a -> a
+repeatedly fn count x =
+    case count of
+        0 -> x    
+        n -> repeatedly fn (n-1) (fn x)
 
+dealACardToEachHand : (List Player, Deck) -> ( List Player, Deck )
+dealACardToEachHand (players, fullDeck) =
+    List.foldl step ([], fullDeck) players
+
+step : Player -> (List Player, Deck) -> (List Player, Deck)
+step player (players, deck) =
+    dealCardToPlayer (player, deck) 
+    |> (\(p,d) -> (players ++ [p], d))
+
+dealCardToPlayer : (Player, Deck) -> (Player, Deck)
+dealCardToPlayer (player, deck) = 
+    dealCardToCardList (player.cards, deck)
+     |> (\(c,d) -> ({player | cards = c}, d))
+    
 
 shuffleKeyGenerator : Int -> Random.Generator ShuffleKey
 shuffleKeyGenerator size =
     List.range 1 size
-        |> --     List.reverse |>
-           --         List.map (Random.int 1) |>
-           --             Random.Extra.sequence
-           List.map (\_ -> Random.int 1 size)
+        |> List.map (\_ -> Random.int 1 size)
         |> Random.Extra.sequence
 
 
 shuffleDeckWithKeyList : ShuffleKey -> Deck -> Deck
 shuffleDeckWithKeyList keylist deck =
-    let
-        shuffledCards =
-            pickCardListUsingKeyList keylist 0 deck.cards
-    in
-    { deck | cards = shuffledCards }
-
+        { deck | cards = pickCardListUsingKeyList keylist 0 deck.cards }
 
 pickCardListUsingKeyList : List Int -> Int -> List Card -> List Card
 pickCardListUsingKeyList keylist offset cards =
@@ -273,15 +273,6 @@ pickCardListUsingKeyList keylist offset cards =
                 Just c ->
                     c :: pickCardListUsingKeyList keysRest (offset + key) shortList
 
-
-flopCards : Game -> List Card
-flopCards model =
-    case model.community of
-        [a,b,c,_] ->
-            [ a, b, c ]
-
-        _ ->
-            []
 
 
 tableCards : Game -> List Card
@@ -331,11 +322,10 @@ initHands =
 initSteps : List Msg
 initSteps = [ShuffleDeck, DealHands, Flop, Turn, River]
 
+
 initGame : Game
 initGame =
     Game initHands newDeck [] initSteps
-
-
 
 {-
 
@@ -377,13 +367,21 @@ type Msg
     | River
     | PayWinnings
     | ShuffleDeckUsingRandomKey ShuffleKey
+    | DoStep
+    | Noop
 
+
+doStep game =
+    update (List.head game.steps |> Maybe.withDefault Noop) {game | steps = List.tail game.steps |> Maybe.withDefault []}
 
 update : Msg -> Game -> ( Game, Cmd Msg )
 update msg game =
     case msg of
+        DoStep -> 
+            game |> doStep
+
         DealHands ->
-            ( game |> dealCard |> dealCard
+            ( game |> dealPlayerCards 
             , Cmd.none
             )
 
@@ -421,6 +419,11 @@ update msg game =
             ( game |> river
             , Cmd.none
             )
+        
+        Noop -> 
+            ( game
+            , Cmd.none
+            )
 
 
 flop : Game -> Game
@@ -430,7 +433,7 @@ flop game =
 dealCardsToCommunity : Int -> Game -> Game
 dealCardsToCommunity count game = 
     let
-        ( cards, remains ) = dealCardsToCardList game.community game.deck count
+        ( cards, remains ) = dealCardsToCardList (game.community, game.deck) count
     in
         {game | deck = remains, community = cards}
 
@@ -445,16 +448,38 @@ river game =
     dealCardsToCommunity 1 game
 
 
-dealCard : Game -> Game
-dealCard game =
+dealPlayerCards : Game -> Game
+dealPlayerCards game =
     let
         ( players, deck ) =
-            dealACardToEachHand game.players game.deck
+            dealCardsToEachHand (game.players, game.deck) 2
     in
-    { game | players = players, deck = deck }
+        { game | players = players, deck = deck }
 
 
+-- dealCardsToEachHand (hands, deck) count = 
+--     case count of
+--         0 -> (hands, deck)
+--         n -> dealCardsToEachHand (dealCardToEachHand (hands, deck)) (n-1)
 
+dealCardToEachHand (hands, deck) =
+    case hands of
+        [] -> (hands, deck)
+        a::b -> 
+            let
+                (h,d) = dealCardToHand (a,deck)
+            in
+                let 
+                    (hs, d2) = dealCardToEachHand (b,d)
+                in
+                    (h :: hs, d2)
+
+dealCardToHand : (Player, Deck) -> (Player, Deck)
+dealCardToHand ( hand, deck ) = 
+    let
+        (h,d) = dealCardToCardList (hand.cards, deck)
+    in
+        ({hand | cards = h}, deck)    
 {-
 
 
@@ -588,28 +613,8 @@ pokerControls =
         [ Element.text "Game Controls"
         , Input.button
             buttonstyle
-            { onPress = Just ShuffleDeck
-            , label = Element.text "Shuffle"
-            }
-        , Input.button
-            buttonstyle
-            { onPress = Just DealHands
-            , label = Element.text "Deal Hands"
-            }
-        , Input.button
-            buttonstyle
-            { onPress = Just Flop
-            , label = Element.text "Flop"
-            }
-        , Input.button
-            buttonstyle
-            { onPress = Just Turn
-            , label = Element.text "Turn"
-            }
-        , Input.button
-            buttonstyle
-            { onPress = Just River
-            , label = Element.text "River"
+            { onPress = Just DoStep
+            , label = Element.text "Do"
             }
         ]
 
