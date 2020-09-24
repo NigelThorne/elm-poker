@@ -320,7 +320,7 @@ initHands =
     [ Player [] "Bob", Player [] "Jane", Player [] "Freddy" ]
 
 initSteps : List Msg
-initSteps = [ShuffleDeck, DealHands, Flop, Turn, River]
+initSteps = [ShuffleDeck, DealHands, Flop, Turn, River, ResetTable]
 
 
 initGame : Game
@@ -369,6 +369,7 @@ type Msg
     | ShuffleDeckUsingRandomKey ShuffleKey
     | DoStep
     | Noop
+    | ResetTable
 
 
 doStep game =
@@ -379,6 +380,11 @@ update msg game =
     case msg of
         DoStep -> 
             game |> doStep
+
+        ResetTable -> 
+            ( {game | deck = newDeck, players = initHands, community = [], steps = initSteps}
+            , Cmd.none
+            )
 
         DealHands ->
             ( game |> dealPlayerCards 
