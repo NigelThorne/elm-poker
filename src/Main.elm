@@ -1,6 +1,5 @@
 module Main exposing (main)
 
-
 -- TODO:
 -- ✅ deal card from deck
 -- ✅ deal random card from deck
@@ -45,6 +44,7 @@ module Main exposing (main)
 --import Element.Font as Font
 
 import Browser
+import Chat
 import Element exposing (..)
 import Element.Background as Background
 import Element.Events exposing (..)
@@ -52,33 +52,33 @@ import Element.Input as Input
 import Firebase
 import Html
 import Poker as Poker
-import Chat 
-import Styles exposing  (..)
+import Styles exposing (..)
 
 
 
 {-
- 
-                                                                           
-                                                                           
- MMMMMMMM               MMMMMMMM                    iiii                   
- M:::::::M             M:::::::M                   i::::i                  
- M::::::::M           M::::::::M                    iiii                   
- M:::::::::M         M:::::::::M                                           
- M::::::::::M       M::::::::::M  aaaaaaaaaaaaa   iiiiiiinnnn  nnnnnnnn    
- M:::::::::::M     M:::::::::::M  a::::::::::::a  i:::::in:::nn::::::::nn  
- M:::::::M::::M   M::::M:::::::M  aaaaaaaaa:::::a  i::::in::::::::::::::nn 
- M::::::M M::::M M::::M M::::::M           a::::a  i::::inn:::::::::::::::n
- M::::::M  M::::M::::M  M::::::M    aaaaaaa:::::a  i::::i  n:::::nnnn:::::n
- M::::::M   M:::::::M   M::::::M  aa::::::::::::a  i::::i  n::::n    n::::n
- M::::::M    M:::::M    M::::::M a::::aaaa::::::a  i::::i  n::::n    n::::n
- M::::::M     MMMMM     M::::::Ma::::a    a:::::a  i::::i  n::::n    n::::n
- M::::::M               M::::::Ma::::a    a:::::a i::::::i n::::n    n::::n
- M::::::M               M::::::Ma:::::aaaa::::::a i::::::i n::::n    n::::n
- M::::::M               M::::::M a::::::::::aa:::ai::::::i n::::n    n::::n
- MMMMMMMM               MMMMMMMM  aaaaaaaaaa  aaaaiiiiiiii nnnnnn    nnnnnn
-                                                                           
+
+
+
+   MMMMMMMM               MMMMMMMM                    iiii
+   M:::::::M             M:::::::M                   i::::i
+   M::::::::M           M::::::::M                    iiii
+   M:::::::::M         M:::::::::M
+   M::::::::::M       M::::::::::M  aaaaaaaaaaaaa   iiiiiiinnnn  nnnnnnnn
+   M:::::::::::M     M:::::::::::M  a::::::::::::a  i:::::in:::nn::::::::nn
+   M:::::::M::::M   M::::M:::::::M  aaaaaaaaa:::::a  i::::in::::::::::::::nn
+   M::::::M M::::M M::::M M::::::M           a::::a  i::::inn:::::::::::::::n
+   M::::::M  M::::M::::M  M::::::M    aaaaaaa:::::a  i::::i  n:::::nnnn:::::n
+   M::::::M   M:::::::M   M::::::M  aa::::::::::::a  i::::i  n::::n    n::::n
+   M::::::M    M:::::M    M::::::M a::::aaaa::::::a  i::::i  n::::n    n::::n
+   M::::::M     MMMMM     M::::::Ma::::a    a:::::a  i::::i  n::::n    n::::n
+   M::::::M               M::::::Ma::::a    a:::::a i::::::i n::::n    n::::n
+   M::::::M               M::::::Ma:::::aaaa::::::a i::::::i n::::n    n::::n
+   M::::::M               M::::::M a::::::::::aa:::ai::::::i n::::n    n::::n
+   MMMMMMMM               MMMMMMMM  aaaaaaaaaa  aaaaiiiiiiii nnnnnn    nnnnnn
+
 -}
+
 
 main : Program () Model Msg
 main =
@@ -92,34 +92,35 @@ main =
 
 
 {-
- 
-                                                                                                
-                                                             dddddddd                           
- MMMMMMMM               MMMMMMMM                             d::::::d                   lllllll 
- M:::::::M             M:::::::M                             d::::::d                   l:::::l 
- M::::::::M           M::::::::M                             d::::::d                   l:::::l 
- M:::::::::M         M:::::::::M                             d:::::d                    l:::::l 
- M::::::::::M       M::::::::::M   ooooooooooo       ddddddddd:::::d     eeeeeeeeeeee    l::::l 
- M:::::::::::M     M:::::::::::M oo:::::::::::oo   dd::::::::::::::d   ee::::::::::::ee  l::::l 
- M:::::::M::::M   M::::M:::::::Mo:::::::::::::::o d::::::::::::::::d  e::::::eeeee:::::eel::::l 
- M::::::M M::::M M::::M M::::::Mo:::::ooooo:::::od:::::::ddddd:::::d e::::::e     e:::::el::::l 
- M::::::M  M::::M::::M  M::::::Mo::::o     o::::od::::::d    d:::::d e:::::::eeeee::::::el::::l 
- M::::::M   M:::::::M   M::::::Mo::::o     o::::od:::::d     d:::::d e:::::::::::::::::e l::::l 
- M::::::M    M:::::M    M::::::Mo::::o     o::::od:::::d     d:::::d e::::::eeeeeeeeeee  l::::l 
- M::::::M     MMMMM     M::::::Mo::::o     o::::od:::::d     d:::::d e:::::::e           l::::l 
- M::::::M               M::::::Mo:::::ooooo:::::od::::::ddddd::::::dde::::::::e         l::::::l
- M::::::M               M::::::Mo:::::::::::::::o d:::::::::::::::::d e::::::::eeeeeeee l::::::l
- M::::::M               M::::::M oo:::::::::::oo   d:::::::::ddd::::d  ee:::::::::::::e l::::::l
- MMMMMMMM               MMMMMMMM   ooooooooooo      ddddddddd   ddddd    eeeeeeeeeeeeee llllllll
-                                                                                                
-                                                                                                
-                                                                                                
-                                                                                                
-                                                                                                
-                                                                                                
-                                                                                                
- 
+
+
+                                                               dddddddd
+   MMMMMMMM               MMMMMMMM                             d::::::d                   lllllll
+   M:::::::M             M:::::::M                             d::::::d                   l:::::l
+   M::::::::M           M::::::::M                             d::::::d                   l:::::l
+   M:::::::::M         M:::::::::M                             d:::::d                    l:::::l
+   M::::::::::M       M::::::::::M   ooooooooooo       ddddddddd:::::d     eeeeeeeeeeee    l::::l
+   M:::::::::::M     M:::::::::::M oo:::::::::::oo   dd::::::::::::::d   ee::::::::::::ee  l::::l
+   M:::::::M::::M   M::::M:::::::Mo:::::::::::::::o d::::::::::::::::d  e::::::eeeee:::::eel::::l
+   M::::::M M::::M M::::M M::::::Mo:::::ooooo:::::od:::::::ddddd:::::d e::::::e     e:::::el::::l
+   M::::::M  M::::M::::M  M::::::Mo::::o     o::::od::::::d    d:::::d e:::::::eeeee::::::el::::l
+   M::::::M   M:::::::M   M::::::Mo::::o     o::::od:::::d     d:::::d e:::::::::::::::::e l::::l
+   M::::::M    M:::::M    M::::::Mo::::o     o::::od:::::d     d:::::d e::::::eeeeeeeeeee  l::::l
+   M::::::M     MMMMM     M::::::Mo::::o     o::::od:::::d     d:::::d e:::::::e           l::::l
+   M::::::M               M::::::Mo:::::ooooo:::::od::::::ddddd::::::dde::::::::e         l::::::l
+   M::::::M               M::::::Mo:::::::::::::::o d:::::::::::::::::d e::::::::eeeeeeee l::::::l
+   M::::::M               M::::::M oo:::::::::::oo   d:::::::::ddd::::d  ee:::::::::::::e l::::::l
+   MMMMMMMM               MMMMMMMM   ooooooooooo      ddddddddd   ddddd    eeeeeeeeeeeeee llllllll
+
+
+
+
+
+
+
+
 -}
+
 
 type alias Model =
     { game : Poker.Game
@@ -137,34 +138,40 @@ init _ =
 
 
 {-
- 
-                                                                                                                         
-                                                     dddddddd                                                            
- UUUUUUUU     UUUUUUUU                               d::::::d                          tttt                              
- U::::::U     U::::::U                               d::::::d                       ttt:::t                              
- U::::::U     U::::::U                               d::::::d                       t:::::t                              
- UU:::::U     U:::::UU                               d:::::d                        t:::::t                              
-  U:::::U     U:::::Uppppp   ppppppppp       ddddddddd:::::d   aaaaaaaaaaaaa  ttttttt:::::ttttttt        eeeeeeeeeeee    
-  U:::::D     D:::::Up::::ppp:::::::::p    dd::::::::::::::d   a::::::::::::a t:::::::::::::::::t      ee::::::::::::ee  
-  U:::::D     D:::::Up:::::::::::::::::p  d::::::::::::::::d   aaaaaaaaa:::::at:::::::::::::::::t     e::::::eeeee:::::ee
-  U:::::D     D:::::Upp::::::ppppp::::::pd:::::::ddddd:::::d            a::::atttttt:::::::tttttt    e::::::e     e:::::e
-  U:::::D     D:::::U p:::::p     p:::::pd::::::d    d:::::d     aaaaaaa:::::a      t:::::t          e:::::::eeeee::::::e
-  U:::::D     D:::::U p:::::p     p:::::pd:::::d     d:::::d   aa::::::::::::a      t:::::t          e:::::::::::::::::e 
-  U:::::D     D:::::U p:::::p     p:::::pd:::::d     d:::::d  a::::aaaa::::::a      t:::::t          e::::::eeeeeeeeeee  
-  U::::::U   U::::::U p:::::p    p::::::pd:::::d     d:::::d a::::a    a:::::a      t:::::t    tttttte:::::::e           
-  U:::::::UUU:::::::U p:::::ppppp:::::::pd::::::ddddd::::::dda::::a    a:::::a      t::::::tttt:::::te::::::::e          
-   UU:::::::::::::UU  p::::::::::::::::p  d:::::::::::::::::da:::::aaaa::::::a      tt::::::::::::::t e::::::::eeeeeeee  
-     UU:::::::::UU    p::::::::::::::pp    d:::::::::ddd::::d a::::::::::aa:::a       tt:::::::::::tt  ee:::::::::::::e  
-       UUUUUUUUU      p::::::pppppppp       ddddddddd   ddddd  aaaaaaaaaa  aaaa         ttttttttttt      eeeeeeeeeeeeee  
-                      p:::::p                                                                                            
-                      p:::::p                                                                                            
-                     p:::::::p                                                                                           
-                     p:::::::p                                                                                           
-                     p:::::::p                                                                                           
-                     ppppppppp                                                                                           
-                                                                                                                         
- 
+
+
+                                                       dddddddd
+   UUUUUUUU     UUUUUUUU                               d::::::d                          tttt
+   U::::::U     U::::::U                               d::::::d                       ttt:::t
+   U::::::U     U::::::U                               d::::::d                       t:::::t
+   UU:::::U     U:::::UU                               d:::::d                        t:::::t
+    U:::::U     U:::::Uppppp   ppppppppp       ddddddddd:::::d   aaaaaaaaaaaaa  ttttttt:::::ttttttt        eeeeeeeeeeee
+    U:::::D     D:::::Up::::ppp:::::::::p    dd::::::::::::::d   a::::::::::::a t:::::::::::::::::t      ee::::::::::::ee
+    U:::::D     D:::::Up:::::::::::::::::p  d::::::::::::::::d   aaaaaaaaa:::::at:::::::::::::::::t     e::::::eeeee:::::ee
+    U:::::D     D:::::Upp::::::ppppp::::::pd:::::::ddddd:::::d            a::::atttttt:::::::tttttt    e::::::e     e:::::e
+    U:::::D     D:::::U p:::::p     p:::::pd::::::d    d:::::d     aaaaaaa:::::a      t:::::t          e:::::::eeeee::::::e
+    U:::::D     D:::::U p:::::p     p:::::pd:::::d     d:::::d   aa::::::::::::a      t:::::t          e:::::::::::::::::e
+    U:::::D     D:::::U p:::::p     p:::::pd:::::d     d:::::d  a::::aaaa::::::a      t:::::t          e::::::eeeeeeeeeee
+    U::::::U   U::::::U p:::::p    p::::::pd:::::d     d:::::d a::::a    a:::::a      t:::::t    tttttte:::::::e
+    U:::::::UUU:::::::U p:::::ppppp:::::::pd::::::ddddd::::::dda::::a    a:::::a      t::::::tttt:::::te::::::::e
+     UU:::::::::::::UU  p::::::::::::::::p  d:::::::::::::::::da:::::aaaa::::::a      tt::::::::::::::t e::::::::eeeeeeee
+       UU:::::::::UU    p::::::::::::::pp    d:::::::::ddd::::d a::::::::::aa:::a       tt:::::::::::tt  ee:::::::::::::e
+         UUUUUUUUU      p::::::pppppppp       ddddddddd   ddddd  aaaaaaaaaa  aaaa         ttttttttttt      eeeeeeeeeeeeee
+                        p:::::p
+                        p:::::p
+                       p:::::::p
+                       p:::::::p
+                       p:::::::p
+                       ppppppppp
+
+
 -}
+-- onMouseOver msg =
+--   Dom.Element.addAttribute
+--     ( "mouseover"
+--       |> Dom.Event.action msg
+--     )
+
 
 type Msg
     = PokerMsg Poker.Msg
@@ -182,10 +189,12 @@ update msg model =
             updateModelFromChatMsg model <| Chat.update chatMsg model.chat model.firebase
 
         Firebase fmsg ->
-                    let
-                        ( a, b ) =                      Firebase.update fmsg model.firebase
-                    in
-                        ( { model | firebase = a }, Cmd.map (\x -> Firebase x) b )
+            let
+                ( a, b ) =
+                    Firebase.update fmsg model.firebase
+            in
+            ( { model | firebase = a }, Cmd.map (\x -> Firebase x) b )
+
 
 updateModelFromPokerMsg : Model -> ( Poker.Game, Cmd Poker.Msg ) -> ( Model, Cmd Msg )
 updateModelFromPokerMsg model ( game, cmd ) =
@@ -195,8 +204,8 @@ updateModelFromPokerMsg model ( game, cmd ) =
 
 
 updateModelFromChatMsg : Model -> ( Chat.Model, Firebase.Model, Cmd Chat.Msg ) -> ( Model, Cmd Msg )
-updateModelFromChatMsg model  ( chat, firebase, cmd ) =
-    ( { model | chat = chat , firebase = firebase}
+updateModelFromChatMsg model ( chat, firebase, cmd ) =
+    ( { model | chat = chat, firebase = firebase }
     , Cmd.map mapChatMsg cmd
     )
 
@@ -213,38 +222,39 @@ mapChatMsg chatMsg =
 
 
 {-
- 
-                                                                                                                                                                                                                               
-                                     bbbbbbbb                                                                                                                                                                                  
-    SSSSSSSSSSSSSSS                  b::::::b                                                                      iiii                              tttt            iiii                                                      
-  SS:::::::::::::::S                 b::::::b                                                                     i::::i                          ttt:::t           i::::i                                                     
- S:::::SSSSSS::::::S                 b::::::b                                                                      iiii                           t:::::t            iiii                                                      
- S:::::S     SSSSSSS                  b:::::b                                                                                                     t:::::t                                                                      
- S:::::S            uuuuuu    uuuuuu  b:::::bbbbbbbbb        ssssssssss       ccccccccccccccccrrrrr   rrrrrrrrr  iiiiiiippppp   ppppppppp   ttttttt:::::ttttttt    iiiiiii    ooooooooooo   nnnn  nnnnnnnn        ssssssssss   
- S:::::S            u::::u    u::::u  b::::::::::::::bb    ss::::::::::s    cc:::::::::::::::cr::::rrr:::::::::r i:::::ip::::ppp:::::::::p  t:::::::::::::::::t    i:::::i  oo:::::::::::oo n:::nn::::::::nn    ss::::::::::s  
-  S::::SSSS         u::::u    u::::u  b::::::::::::::::b ss:::::::::::::s  c:::::::::::::::::cr:::::::::::::::::r i::::ip:::::::::::::::::p t:::::::::::::::::t     i::::i o:::::::::::::::on::::::::::::::nn ss:::::::::::::s 
-   SS::::::SSSSS    u::::u    u::::u  b:::::bbbbb:::::::bs::::::ssss:::::sc:::::::cccccc:::::crr::::::rrrrr::::::ri::::ipp::::::ppppp::::::ptttttt:::::::tttttt     i::::i o:::::ooooo:::::onn:::::::::::::::ns::::::ssss:::::s
-     SSS::::::::SS  u::::u    u::::u  b:::::b    b::::::b s:::::s  ssssss c::::::c     ccccccc r:::::r     r:::::ri::::i p:::::p     p:::::p      t:::::t           i::::i o::::o     o::::o  n:::::nnnn:::::n s:::::s  ssssss 
-        SSSSSS::::S u::::u    u::::u  b:::::b     b:::::b   s::::::s      c:::::c              r:::::r     rrrrrrri::::i p:::::p     p:::::p      t:::::t           i::::i o::::o     o::::o  n::::n    n::::n   s::::::s      
-             S:::::Su::::u    u::::u  b:::::b     b:::::b      s::::::s   c:::::c              r:::::r            i::::i p:::::p     p:::::p      t:::::t           i::::i o::::o     o::::o  n::::n    n::::n      s::::::s   
-             S:::::Su:::::uuuu:::::u  b:::::b     b:::::bssssss   s:::::s c::::::c     ccccccc r:::::r            i::::i p:::::p    p::::::p      t:::::t    tttttt i::::i o::::o     o::::o  n::::n    n::::nssssss   s:::::s 
- SSSSSSS     S:::::Su:::::::::::::::uub:::::bbbbbb::::::bs:::::ssss::::::sc:::::::cccccc:::::c r:::::r           i::::::ip:::::ppppp:::::::p      t::::::tttt:::::ti::::::io:::::ooooo:::::o  n::::n    n::::ns:::::ssss::::::s
- S::::::SSSSSS:::::S u:::::::::::::::ub::::::::::::::::b s::::::::::::::s  c:::::::::::::::::c r:::::r           i::::::ip::::::::::::::::p       tt::::::::::::::ti::::::io:::::::::::::::o  n::::n    n::::ns::::::::::::::s 
- S:::::::::::::::SS   uu::::::::uu:::ub:::::::::::::::b   s:::::::::::ss    cc:::::::::::::::c r:::::r           i::::::ip::::::::::::::pp          tt:::::::::::tti::::::i oo:::::::::::oo   n::::n    n::::n s:::::::::::ss  
-  SSSSSSSSSSSSSSS       uuuuuuuu  uuuubbbbbbbbbbbbbbbb     sssssssssss        cccccccccccccccc rrrrrrr           iiiiiiiip::::::pppppppp              ttttttttttt  iiiiiiii   ooooooooooo     nnnnnn    nnnnnn  sssssssssss    
-                                                                                                                         p:::::p                                                                                               
-                                                                                                                         p:::::p                                                                                               
-                                                                                                                        p:::::::p                                                                                              
-                                                                                                                        p:::::::p                                                                                              
-                                                                                                                        p:::::::p                                                                                              
-                                                                                                                        ppppppppp                                                                                              
-                                                                                                                                                                                                                               
- 
+
+
+                                       bbbbbbbb
+      SSSSSSSSSSSSSSS                  b::::::b                                                                      iiii                              tttt            iiii
+    SS:::::::::::::::S                 b::::::b                                                                     i::::i                          ttt:::t           i::::i
+   S:::::SSSSSS::::::S                 b::::::b                                                                      iiii                           t:::::t            iiii
+   S:::::S     SSSSSSS                  b:::::b                                                                                                     t:::::t
+   S:::::S            uuuuuu    uuuuuu  b:::::bbbbbbbbb        ssssssssss       ccccccccccccccccrrrrr   rrrrrrrrr  iiiiiiippppp   ppppppppp   ttttttt:::::ttttttt    iiiiiii    ooooooooooo   nnnn  nnnnnnnn        ssssssssss
+   S:::::S            u::::u    u::::u  b::::::::::::::bb    ss::::::::::s    cc:::::::::::::::cr::::rrr:::::::::r i:::::ip::::ppp:::::::::p  t:::::::::::::::::t    i:::::i  oo:::::::::::oo n:::nn::::::::nn    ss::::::::::s
+    S::::SSSS         u::::u    u::::u  b::::::::::::::::b ss:::::::::::::s  c:::::::::::::::::cr:::::::::::::::::r i::::ip:::::::::::::::::p t:::::::::::::::::t     i::::i o:::::::::::::::on::::::::::::::nn ss:::::::::::::s
+     SS::::::SSSSS    u::::u    u::::u  b:::::bbbbb:::::::bs::::::ssss:::::sc:::::::cccccc:::::crr::::::rrrrr::::::ri::::ipp::::::ppppp::::::ptttttt:::::::tttttt     i::::i o:::::ooooo:::::onn:::::::::::::::ns::::::ssss:::::s
+       SSS::::::::SS  u::::u    u::::u  b:::::b    b::::::b s:::::s  ssssss c::::::c     ccccccc r:::::r     r:::::ri::::i p:::::p     p:::::p      t:::::t           i::::i o::::o     o::::o  n:::::nnnn:::::n s:::::s  ssssss
+          SSSSSS::::S u::::u    u::::u  b:::::b     b:::::b   s::::::s      c:::::c              r:::::r     rrrrrrri::::i p:::::p     p:::::p      t:::::t           i::::i o::::o     o::::o  n::::n    n::::n   s::::::s
+               S:::::Su::::u    u::::u  b:::::b     b:::::b      s::::::s   c:::::c              r:::::r            i::::i p:::::p     p:::::p      t:::::t           i::::i o::::o     o::::o  n::::n    n::::n      s::::::s
+               S:::::Su:::::uuuu:::::u  b:::::b     b:::::bssssss   s:::::s c::::::c     ccccccc r:::::r            i::::i p:::::p    p::::::p      t:::::t    tttttt i::::i o::::o     o::::o  n::::n    n::::nssssss   s:::::s
+   SSSSSSS     S:::::Su:::::::::::::::uub:::::bbbbbb::::::bs:::::ssss::::::sc:::::::cccccc:::::c r:::::r           i::::::ip:::::ppppp:::::::p      t::::::tttt:::::ti::::::io:::::ooooo:::::o  n::::n    n::::ns:::::ssss::::::s
+   S::::::SSSSSS:::::S u:::::::::::::::ub::::::::::::::::b s::::::::::::::s  c:::::::::::::::::c r:::::r           i::::::ip::::::::::::::::p       tt::::::::::::::ti::::::io:::::::::::::::o  n::::n    n::::ns::::::::::::::s
+   S:::::::::::::::SS   uu::::::::uu:::ub:::::::::::::::b   s:::::::::::ss    cc:::::::::::::::c r:::::r           i::::::ip::::::::::::::pp          tt:::::::::::tti::::::i oo:::::::::::oo   n::::n    n::::n s:::::::::::ss
+    SSSSSSSSSSSSSSS       uuuuuuuu  uuuubbbbbbbbbbbbbbbb     sssssssssss        cccccccccccccccc rrrrrrr           iiiiiiiip::::::pppppppp              ttttttttttt  iiiiiiii   ooooooooooo     nnnnnn    nnnnnn  sssssssssss
+                                                                                                                           p:::::p
+                                                                                                                           p:::::p
+                                                                                                                          p:::::::p
+                                                                                                                          p:::::::p
+                                                                                                                          p:::::::p
+                                                                                                                          ppppppppp
+
+
 -}
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch 
+    Sub.batch
         [ Sub.map (\x -> Firebase x) (Firebase.subscriptions model.firebase)
         , Sub.map mapChatMsg (Chat.subscriptions model.chat)
         ]
@@ -252,33 +262,33 @@ subscriptions model =
 
 
 {-
- 
-                                                                                              
-                                                                                              
- VVVVVVVV           VVVVVVVV iiii                                                             
- V::::::V           V::::::Vi::::i                                                            
- V::::::V           V::::::V iiii                                                             
- V::::::V           V::::::V                                                                  
-  V:::::V           V:::::Viiiiiii     eeeeeeeeeeee  wwwwwww           wwwww           wwwwwww
-   V:::::V         V:::::V i:::::i   ee::::::::::::ee w:::::w         w:::::w         w:::::w 
-    V:::::V       V:::::V   i::::i  e::::::eeeee:::::eew:::::w       w:::::::w       w:::::w  
-     V:::::V     V:::::V    i::::i e::::::e     e:::::e w:::::w     w:::::::::w     w:::::w   
-      V:::::V   V:::::V     i::::i e:::::::eeeee::::::e  w:::::w   w:::::w:::::w   w:::::w    
-       V:::::V V:::::V      i::::i e:::::::::::::::::e    w:::::w w:::::w w:::::w w:::::w     
-        V:::::V:::::V       i::::i e::::::eeeeeeeeeee      w:::::w:::::w   w:::::w:::::w      
-         V:::::::::V        i::::i e:::::::e                w:::::::::w     w:::::::::w       
-          V:::::::V        i::::::ie::::::::e                w:::::::w       w:::::::w        
-           V:::::V         i::::::i e::::::::eeeeeeee         w:::::w         w:::::w         
-            V:::V          i::::::i  ee:::::::::::::e          w:::w           w:::w          
-             VVV           iiiiiiii    eeeeeeeeeeeeee           www             www           
-                                                                                              
-                                                                                              
-                                                                                              
-                                                                                              
-                                                                                              
-                                                                                              
-                                                                                              
- 
+
+
+
+   VVVVVVVV           VVVVVVVV iiii
+   V::::::V           V::::::Vi::::i
+   V::::::V           V::::::V iiii
+   V::::::V           V::::::V
+    V:::::V           V:::::Viiiiiii     eeeeeeeeeeee  wwwwwww           wwwww           wwwwwww
+     V:::::V         V:::::V i:::::i   ee::::::::::::ee w:::::w         w:::::w         w:::::w
+      V:::::V       V:::::V   i::::i  e::::::eeeee:::::eew:::::w       w:::::::w       w:::::w
+       V:::::V     V:::::V    i::::i e::::::e     e:::::e w:::::w     w:::::::::w     w:::::w
+        V:::::V   V:::::V     i::::i e:::::::eeeee::::::e  w:::::w   w:::::w:::::w   w:::::w
+         V:::::V V:::::V      i::::i e:::::::::::::::::e    w:::::w w:::::w w:::::w w:::::w
+          V:::::V:::::V       i::::i e::::::eeeeeeeeeee      w:::::w:::::w   w:::::w:::::w
+           V:::::::::V        i::::i e:::::::e                w:::::::::w     w:::::::::w
+            V:::::::V        i::::::ie::::::::e                w:::::::w       w:::::::w
+             V:::::V         i::::::i e::::::::eeeeeeee         w:::::w         w:::::w
+              V:::V          i::::::i  ee:::::::::::::e          w:::w           w:::w
+               VVV           iiiiiiii    eeeeeeeeeeeeee           www             www
+
+
+
+
+
+
+
+
 -}
 
 
@@ -293,14 +303,15 @@ view model =
 
 controlPanel : Model -> Element Msg
 controlPanel model =
-    column 
+    column
         [ spacing 100
         , padding 20
         , height fill
-        ] 
-        [ el [centerX] (viewUserControls model)
-        , el [centerX] (Element.map mapChatMsg (Chat.viewChatWindow model.chat model.firebase))
         ]
+        [ el [ centerX ] (viewUserControls model)
+        , el [ centerX ] (Element.map mapChatMsg (Chat.viewChatWindow model.chat model.firebase))
+        ]
+
 
 playingArea : Model -> Element Msg
 playingArea model =
@@ -308,21 +319,23 @@ playingArea model =
         [ height fill
         , width <| fillPortion 5
         ]
-        [ 
-            if Firebase.isSignedIn model.firebase then
-                Poker.viewTable model.game
-            else
-               viewUserControls model
-        , el [width fill  
+        [ if Firebase.isSignedIn model.firebase then
+            Element.map mapPokerMsg (Poker.viewTable model.game)
+
+          else
+            viewUserControls model
+        , el
+            [ width fill
             , Background.color <| rgb255 0 123 23
             ]
-            (Element.map mapPokerMsg Poker.pokerControls )
+            (Element.map mapPokerMsg Poker.pokerControls)
         ]
 
 
 viewUserControls : Model -> Element Msg
 viewUserControls model =
     Element.map (\c -> Firebase c) (viewFirebaseUserControls model.firebase)
+
 
 viewFirebaseUserControls : Firebase.Model -> Element Firebase.Msg
 viewFirebaseUserControls model =

@@ -6,9 +6,9 @@ import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
+import List.Extra exposing (getAt, setAt)
 import Random
 import Random.Extra
-import Html exposing (b)
 
 
 
@@ -101,6 +101,7 @@ type Status
     | Loaded Deck
     | Errored
 
+
 type alias ShuffleKey =
     List Int
 
@@ -117,8 +118,7 @@ allFaces =
 
 allCardsInSuit : Suit -> List Card
 allCardsInSuit suit =
-    List.map (\face -> Card face suit FaceUp) allFaces
-
+    List.map (\face -> Card face suit FaceDown) allFaces
 
 
 allCardsInDeck : List Card
@@ -136,18 +136,17 @@ flipCard facing card =
     { card | facing = facing }
 
 
-
-dealCardToCardList : (List Card, Deck) -> ( List Card, Deck )
-dealCardToCardList (cards, deck) =
+dealCardToCardList : Facing -> ( List Card, Deck ) -> ( List Card, Deck )
+dealCardToCardList facing ( cards, deck ) =
     let
         ( card, deck2 ) =
             removeTopCardFromDeck deck
     in
-        ( addCard card cards, deck2 )
+    ( addCard facing card cards, deck2 )
 
 
-dealCardsToCardList : (List Card, Deck) -> Int -> ( List Card, Deck )
-dealCardsToCardList (cards, deck) count =
+dealCardsToCardList : ( List Card, Deck ) -> Facing -> Int -> ( List Card, Deck )
+dealCardsToCardList ( cards, deck ) facing count =
     case count of
         0 ->
             ( cards, deck )
@@ -155,24 +154,25 @@ dealCardsToCardList (cards, deck) count =
         n ->
             let
                 ( dealt, remains ) =
-                    dealCardToCardList (cards, deck)
+                    dealCardToCardList facing ( cards, deck )
             in
-                dealCardsToCardList (dealt, remains) (n - 1)
+            dealCardsToCardList ( dealt, remains ) facing (n - 1)
 
 
-addCard : Maybe Card -> List Card -> List Card
-addCard card cards =
+addCard : Facing -> Maybe Card -> List Card -> List Card
+addCard facing card cards =
     case card of
         Nothing ->
             cards
 
         Just c ->
-            cards ++ [ c ]
+            cards ++ [ {c | facing=facing} ]
 
 
 deckSize : Deck -> Int
 deckSize deck =
     List.length deck.cards
+
 
 removeTopCardFromDeck : Deck -> ( Maybe Card, Deck )
 removeTopCardFromDeck deck =
@@ -214,11 +214,10 @@ dealACardToAHand hand deck =
         ( card, deck2 ) =
             removeTopCardFromDeck deck
     in
-    ( { hand | cards = addCard card hand.cards }, deck2 )
+    ( { hand | cards = addCard FaceDown card hand.cards }, deck2 )
 
 
-
-dealCardsToEachHand : (List Player, Deck) -> Int -> ( List Player, Deck )
+dealCardsToEachHand : ( List Player, Deck ) -> Int -> ( List Player, Deck )
 dealCardsToEachHand state count =
     repeatedly dealACardToEachHand count state
 
@@ -226,23 +225,29 @@ dealCardsToEachHand state count =
 repeatedly : (a -> a) -> Int -> a -> a
 repeatedly fn count x =
     case count of
-        0 -> x    
-        n -> repeatedly fn (n-1) (fn x)
+        0 ->
+            x
 
-dealACardToEachHand : (List Player, Deck) -> ( List Player, Deck )
-dealACardToEachHand (players, fullDeck) =
-    List.foldl step ([], fullDeck) players
+        n ->
+            repeatedly fn (n - 1) (fn x)
 
-step : Player -> (List Player, Deck) -> (List Player, Deck)
-step player (players, deck) =
-    dealCardToPlayer (player, deck) 
-    |> (\(p,d) -> (players ++ [p], d))
 
-dealCardToPlayer : (Player, Deck) -> (Player, Deck)
-dealCardToPlayer (player, deck) = 
-    dealCardToCardList (player.cards, deck)
-     |> (\(c,d) -> ({player | cards = c}, d))
-    
+dealACardToEachHand : ( List Player, Deck ) -> ( List Player, Deck )
+dealACardToEachHand ( players, fullDeck ) =
+    List.foldl step ( [], fullDeck ) players
+
+
+step : Player -> ( List Player, Deck ) -> ( List Player, Deck )
+step player ( players, deck ) =
+    dealCardToPlayer ( player, deck )
+        |> (\( p, d ) -> ( players ++ [ p ], d ))
+
+
+dealCardToPlayer : ( Player, Deck ) -> ( Player, Deck )
+dealCardToPlayer ( player, deck ) =
+    dealCardToCardList FaceDown ( player.cards, deck )
+        |> (\( c, d ) -> ( { player | cards = c }, d ))
+
 
 shuffleKeyGenerator : Int -> Random.Generator ShuffleKey
 shuffleKeyGenerator size =
@@ -253,7 +258,8 @@ shuffleKeyGenerator size =
 
 shuffleDeckWithKeyList : ShuffleKey -> Deck -> Deck
 shuffleDeckWithKeyList keylist deck =
-        { deck | cards = pickCardListUsingKeyList keylist 0 deck.cards }
+    { deck | cards = pickCardListUsingKeyList keylist 0 deck.cards }
+
 
 pickCardListUsingKeyList : List Int -> Int -> List Card -> List Card
 pickCardListUsingKeyList keylist offset cards =
@@ -274,10 +280,11 @@ pickCardListUsingKeyList keylist offset cards =
                     c :: pickCardListUsingKeyList keysRest (offset + key) shortList
 
 
-
 tableCards : Game -> List Card
 tableCards game =
     game.community
+
+
 
 {-
 
@@ -310,22 +317,21 @@ tableCards game =
 -}
 
 
-initRounds : List Msg
-initRounds =
-    [ ShuffleDeck, DealHands, Betting, Flop, Betting, Turn, Betting, River, Betting, PayWinnings ]
-
-
 initHands : List Player
 initHands =
     [ Player [] "Bob", Player [] "Jane", Player [] "Freddy" ]
 
+
 initSteps : List Msg
-initSteps = [ShuffleDeck, DealHands, Flop, Turn, River, ResetTable]
+initSteps =
+    [ ShuffleDeck, Flop, Turn, River, ResetTable ]
 
 
 initGame : Game
 initGame =
     Game initHands newDeck [] initSteps
+
+
 
 {-
 
@@ -360,7 +366,6 @@ initGame =
 
 type Msg
     = ShuffleDeck
-    | DealHands
     | Betting
     | Flop
     | Turn
@@ -370,24 +375,23 @@ type Msg
     | DoStep
     | Noop
     | ResetTable
+    | FlipCard Card
+    | UserHoveredButton Int
+    | UserUnhoveredButton Int
 
 
 doStep game =
-    update (List.head game.steps |> Maybe.withDefault Noop) {game | steps = List.tail game.steps |> Maybe.withDefault []}
+    update (List.head game.steps |> Maybe.withDefault Noop) { game | steps = List.tail game.steps |> Maybe.withDefault [] }
+
 
 update : Msg -> Game -> ( Game, Cmd Msg )
 update msg game =
     case msg of
-        DoStep -> 
+        DoStep ->
             game |> doStep
 
-        ResetTable -> 
-            ( {game | deck = newDeck, players = initHands, community = [], steps = initSteps}
-            , Cmd.none
-            )
-
-        DealHands ->
-            ( game |> dealPlayerCards 
+        ResetTable ->
+            ( { game | deck = newDeck, players = initHands, community = [], steps = initSteps }
             , Cmd.none
             )
 
@@ -412,7 +416,7 @@ update msg game =
             )
 
         ShuffleDeckUsingRandomKey keylist ->
-            ( { game | deck = shuffleDeckWithKeyList keylist game.deck }
+            ( { game | deck = shuffleDeckWithKeyList keylist game.deck } |> dealPlayerCards
             , Cmd.none
             )
 
@@ -425,28 +429,68 @@ update msg game =
             ( game |> river
             , Cmd.none
             )
-        
-        Noop -> 
+
+        Noop ->
             ( game
             , Cmd.none
             )
+
+        FlipCard _ ->
+            ( game
+            , Cmd.none
+            )
+
+        UserHoveredButton id ->
+            ( { game
+                | players = flipHand id FaceUp game.players
+              }
+            , Cmd.none
+            )
+
+        UserUnhoveredButton id ->
+            ( { game
+                | players = flipHand id FaceDown game.players
+              }
+            , Cmd.none
+            )
+
+
+flipHand : Int -> Facing -> List Player -> List Player
+flipHand index facing players =
+    let
+        player =
+            getAt index players
+    in
+    case player of
+        Nothing ->
+            players
+
+        Just p ->
+            setAt index { p | cards = flipCards facing p.cards } players
+
+
+flipCards : Facing -> List Card -> List Card
+flipCards facing cards =
+    List.map (\c -> flipCard facing c) cards
 
 
 flop : Game -> Game
 flop game =
     dealCardsToCommunity 3 game
 
+
 dealCardsToCommunity : Int -> Game -> Game
-dealCardsToCommunity count game = 
+dealCardsToCommunity count game =
     let
-        ( cards, remains ) = dealCardsToCardList (game.community, game.deck) count
+        ( cards, remains ) =
+            dealCardsToCardList ( game.community, game.deck ) FaceUp count
     in
-        {game | deck = remains, community = cards}
+    { game | deck = remains, community = cards }
 
 
 turn : Game -> Game
 turn game =
-    dealCardsToCommunity 2 game
+    dealCardsToCommunity 1 game
 
 
 river : Game -> Game
@@ -458,34 +502,45 @@ dealPlayerCards : Game -> Game
 dealPlayerCards game =
     let
         ( players, deck ) =
-            dealCardsToEachHand (game.players, game.deck) 2
+            dealCardsToEachHand ( game.players, game.deck ) 2
     in
-        { game | players = players, deck = deck }
+    { game | players = players, deck = deck }
 
 
--- dealCardsToEachHand (hands, deck) count = 
+
+-- dealCardsToEachHand (hands, deck) count =
 --     case count of
 --         0 -> (hands, deck)
 --         n -> dealCardsToEachHand (dealCardToEachHand (hands, deck)) (n-1)
 
-dealCardToEachHand (hands, deck) =
-    case hands of
-        [] -> (hands, deck)
-        a::b -> 
-            let
-                (h,d) = dealCardToHand (a,deck)
-            in
-                let 
-                    (hs, d2) = dealCardToEachHand (b,d)
-                in
-                    (h :: hs, d2)
 
-dealCardToHand : (Player, Deck) -> (Player, Deck)
-dealCardToHand ( hand, deck ) = 
+dealCardToEachHand ( hands, deck ) =
+    case hands of
+        [] ->
+            ( hands, deck )
+
+        a :: b ->
+            let
+                ( h, d ) =
+                    dealCardToHand ( a, deck )
+            in
+            let
+                ( hs, d2 ) =
+                    dealCardToEachHand ( b, d )
+            in
+            ( h :: hs, d2 )
+
+
+dealCardToHand : ( Player, Deck ) -> ( Player, Deck )
+dealCardToHand ( hand, deck ) =
     let
-        (h,d) = dealCardToCardList (hand.cards, deck)
+        ( h, _ ) =
+            dealCardToCardList FaceDown ( hand.cards, deck )
     in
-        ({hand | cards = h}, deck)    
+    ( { hand | cards = h }, deck )
+
+
+
 {-
 
 
@@ -522,7 +577,7 @@ tablecolor =
     rgb255 0 160 40
 
 
-viewTable : Game -> Element msg
+viewTable : Game -> Element Msg
 viewTable model =
     column
         [ Background.color <| tablecolor
@@ -541,22 +596,27 @@ debuggingInformation model =
     el [] (text <| Debug.toString <| model.x)
 
 
-viewHands : List Player -> Element msg
+viewHands : List Player -> Element Msg
 viewHands players =
     row
         [ spacing 100
         , height <| px 135
         , centerX
         ]
-        (List.map viewHand players)
+        (List.indexedMap viewHand players)
 
 
-viewHand : Player -> Element msg
-viewHand hand =
-    column [ spacing 10 ] [ row [ spacing 10 ] (viewCards hand.cards), el [ centerX ] (text hand.name) ]
+viewHand : Int -> Player -> Element Msg
+viewHand index hand =
+    column
+        [ spacing 10
+        , onMouseEnter <| UserHoveredButton index
+        , onMouseLeave <| UserUnhoveredButton index
+        ]
+        [ row [ spacing 10 ] (viewCards hand.cards), el [ centerX ] (text hand.name) ]
 
 
-viewTableCards : Game -> Element msg
+viewTableCards : Game -> Element Msg
 viewTableCards model =
     row
         [ spacing 10
@@ -568,12 +628,12 @@ viewTableCards model =
         (viewCards <| tableCards model)
 
 
-viewCards : List Card -> List (Element msg)
+viewCards : List Card -> List (Element Msg)
 viewCards cards =
     List.map viewCard cards
 
 
-viewCard : Card -> Element msg
+viewCard : Card -> Element Msg
 viewCard card =
     el
         [ Border.rounded 8
@@ -583,13 +643,22 @@ viewCard card =
         , spacing 0
         , height <| px 128
         , Background.color <| rgb255 255 255 255
-        , Font.color <| suitToColor card.suit
+        , Font.color <| cardColor card
 
         -- , Element.explain Debug.todo
         ]
         (el [ moveUp 18 ]
             (text (cardText card))
         )
+
+
+cardColor card =
+    case card.facing of
+        FaceDown ->
+            rgb255 103 58 183
+
+        FaceUp ->
+            suitToColor card.suit
 
 
 suitToColor : Suit -> Color
