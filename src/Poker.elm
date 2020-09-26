@@ -6,7 +6,7 @@ import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
-import List.Extra exposing (getAt, setAt)
+import List.Extra exposing (getAt, setAt, updateAt)
 import Random
 import Random.Extra
 
@@ -208,17 +208,8 @@ removeAnyCardFromCardList cards index =
     ( card, header ++ rest )
 
 
-dealACardToAHand : Player -> Deck -> ( Player, Deck )
-dealACardToAHand hand deck =
-    let
-        ( card, deck2 ) =
-            removeTopCardFromDeck deck
-    in
-    ( { hand | cards = addCard FaceDown card hand.cards }, deck2 )
-
-
-dealCardsToEachHand : ( List Player, Deck ) -> Int -> ( List Player, Deck )
-dealCardsToEachHand state count =
+dealCardsToEachHand : Int -> ( List Player, Deck ) -> ( List Player, Deck )
+dealCardsToEachHand count state  =
     repeatedly dealACardToEachHand count state
 
 
@@ -440,33 +431,20 @@ update msg game =
             , Cmd.none
             )
 
-        UserHoveredButton id ->
-            ( { game
-                | players = flipHand id FaceUp game.players
-              }
+        UserHoveredButton index ->
+            ( { game | players = flipHand index FaceUp game.players }
             , Cmd.none
             )
 
-        UserUnhoveredButton id ->
-            ( { game
-                | players = flipHand id FaceDown game.players
-              }
+        UserUnhoveredButton index ->
+            ( { game | players = flipHand index FaceDown game.players }
             , Cmd.none
             )
 
 
 flipHand : Int -> Facing -> List Player -> List Player
 flipHand index facing players =
-    let
-        player =
-            getAt index players
-    in
-    case player of
-        Nothing ->
-            players
-
-        Just p ->
-            setAt index { p | cards = flipCards facing p.cards } players
+    updateAt index (\p -> { p | cards = flipCards facing p.cards }) players
 
 
 flipCards : Facing -> List Card -> List Card
@@ -485,7 +463,7 @@ dealCardsToCommunity count game =
         ( cards, remains ) =
             dealCardsToCardList ( game.community, game.deck ) FaceUp count
     in
-    { game | deck = remains, community = cards }
+        { game | deck = remains, community = cards }
 
 
 turn : Game -> Game
@@ -502,22 +480,16 @@ dealPlayerCards : Game -> Game
 dealPlayerCards game =
     let
         ( players, deck ) =
-            dealCardsToEachHand ( game.players, game.deck ) 2
+            dealCardsToEachHand 2 ( game.players, game.deck )
     in
-    { game | players = players, deck = deck }
+        { game | players = players, deck = deck }
 
 
-
--- dealCardsToEachHand (hands, deck) count =
---     case count of
---         0 -> (hands, deck)
---         n -> dealCardsToEachHand (dealCardToEachHand (hands, deck)) (n-1)
-
-
-dealCardToEachHand ( hands, deck ) =
-    case hands of
+dealCardToEachHand : (List Player, Deck) -> (List Player, Deck)
+dealCardToEachHand ( players, deck ) =
+    case players of
         [] ->
-            ( hands, deck )
+            ( players, deck )
 
         a :: b ->
             let
@@ -528,7 +500,7 @@ dealCardToEachHand ( hands, deck ) =
                 ( hs, d2 ) =
                     dealCardToEachHand ( b, d )
             in
-            ( h :: hs, d2 )
+                ( h :: hs, d2 )
 
 
 dealCardToHand : ( Player, Deck ) -> ( Player, Deck )
@@ -592,8 +564,8 @@ viewTable model =
         ]
 
 
-debuggingInformation model =
-    el [] (text <| Debug.toString <| model.x)
+-- debuggingInformation model =
+--     el [] (text <| Debug.toString <| model.x)
 
 
 viewHands : List Player -> Element Msg
@@ -622,8 +594,6 @@ viewTableCards model =
         [ spacing 10
         , height <| px 135
         , centerX
-
-        --, Element.explain Debug.todo
         ]
         (viewCards <| tableCards model)
 
@@ -635,20 +605,19 @@ viewCards cards =
 
 viewCard : Int -> Card -> Element Msg
 viewCard size card =
-
-        el
-            [ Border.rounded 8
-            , Font.size size
-            , alignTop
-            , padding 0
-            , spacing 0
-            , height <| px ( 9 * size // 10)
-            , Background.color <| rgb255 255 255 255
-            , Font.color <| cardColor card
-            ]
-            (el [ moveUp (0.13 * toFloat size) ]
-                (text (cardText card))
-            )
+    el
+        [ Border.rounded 8
+        , Font.size size
+        , alignTop
+        , padding 0
+        , spacing 0
+        , height <| px ( 9 * size // 10)
+        , Background.color <| rgb255 255 255 255
+        , Font.color <| cardColor card
+        ]
+        (el [ moveUp (0.13 * toFloat size) ]
+            (text (cardText card))
+        )
 
 
 cardColor : Card -> Color
@@ -703,22 +672,6 @@ buttonstyle =
     , Border.color <| rgb255 200 200 200
     , Font.color <| rgb255 255 255 255
     ]
-
-
-color : Card -> String
-color card =
-    case card.suit of
-        Heart ->
-            "#ff6d69"
-
-        Diamond ->
-            "#decc20"
-
-        Club ->
-            "#0ba7bb"
-
-        Spade ->
-            "#010b8b"
 
 
 cardText : Card -> String
