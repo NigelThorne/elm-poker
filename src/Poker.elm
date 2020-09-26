@@ -630,28 +630,28 @@ viewTableCards model =
 
 viewCards : List Card -> List (Element Msg)
 viewCards cards =
-    List.map viewCard cards
+    List.map (\c -> viewCard 180 c) cards
 
 
-viewCard : Card -> Element Msg
-viewCard card =
-    el
-        [ Border.rounded 8
-        , Font.size 140
-        , alignTop
-        , padding 0
-        , spacing 0
-        , height <| px 128
-        , Background.color <| rgb255 255 255 255
-        , Font.color <| cardColor card
+viewCard : Int -> Card -> Element Msg
+viewCard size card =
 
-        -- , Element.explain Debug.todo
-        ]
-        (el [ moveUp 18 ]
-            (text (cardText card))
-        )
+        el
+            [ Border.rounded 8
+            , Font.size size
+            , alignTop
+            , padding 0
+            , spacing 0
+            , height <| px ( 9 * size // 10)
+            , Background.color <| rgb255 255 255 255
+            , Font.color <| cardColor card
+            ]
+            (el [ moveUp (0.13 * toFloat size) ]
+                (text (cardText card))
+            )
 
 
+cardColor : Card -> Color
 cardColor card =
     case card.facing of
         FaceDown ->
