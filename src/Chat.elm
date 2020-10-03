@@ -13,8 +13,6 @@ import Styles exposing (..)
 
 
 port saveMessage : Json.Encode.Value -> Cmd msg
-
-
 port receiveMessages : (Json.Encode.Value -> msg) -> Sub msg
 
 
@@ -230,42 +228,44 @@ viewChatWindow : Model -> Firebase.Model -> Element Msg
 viewChatWindow model firebase =
     column
         [ width <| px 300
-        , spacing 20
+        , spacing 10
         , centerX
         ]
-        [ case firebase.userData of
-            Just _ ->
-                column [ spacing 10, centerX ]
-                    [ Input.text
-                        [ onEnter EnterWasPressed ]
-                        { label = Input.labelAbove [] (text "Message to send")
-                        , onChange = InputChanged
-                        , placeholder = Nothing -- Just (Input.placeholder [] (text ""))
-                        , text = model.inputContent
-                        }
-                    , Input.button
-                        buttonStyle
-                        { onPress = Just SaveMessage
-                        , label = text "Save new message"
-                        }
-                    ]
-
-            Maybe.Nothing ->
-                el [] (text "")
-        , column [ centerX ]
+        [ column [ centerX ]
             [ column
-                [ spacing 20
+                [ spacing 10
                 , Border.solid
                 , Border.width 1
                 , padding 10
+                , width <| px 300
+                , height <| px 600
                 ]
-                [ text "Previous messages"
-                , column [] <|
+                [ el [centerX] (text "Messages:")
+                , column [scrollbars, height fill, width fill ] <|
                     List.map
                         (\m -> paragraph [] [ text m.text ])
                         model.messages
                 ]
             ]
+        , case firebase.userData of
+            Just _ ->
+                column [ spacing 10, centerX, width <| px 300 ]
+                    [ Input.text
+                        [ onEnter EnterWasPressed ]
+                        { label = Input.labelHidden "Message to send"-- [] (el [centerX] (text "Message to send"))
+                        , onChange = InputChanged
+                        , placeholder = Just (Input.placeholder [] (text "message"))
+                        , text = model.inputContent
+                        }
+                    , Input.button
+                        buttonStyle
+                        { onPress = Just SaveMessage
+                        , label = el [centerX] (text "Save new message")
+                        }
+                    ]
+
+            Maybe.Nothing ->
+                el [] (text "")
         , el [] (text <| Firebase.errorPrinter firebase.error)
         ]
 

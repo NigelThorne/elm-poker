@@ -1,4 +1,4 @@
-module Main exposing (main)
+module Main exposing (hamburgerIcon, main)
 
 -- TODO:
 -- ✅ deal card from deck
@@ -11,13 +11,18 @@ module Main exposing (main)
 -- ✅ river
 -- ✅ index file -- requires compile (elm make src/Main.elm --output=./main.js)
 -- ✅ swap rendering for elm.ui
--- union type with one constructor for card and deck.
 -- ✅ Shuffle multiple times  (List ShuffleKey)
--- firebase -- share deck
 -- ✅ card colors, table color, card backings
 -- ✅ name players
 -- ✅ messages in order
+-- url ->  join room
+-- join room -> url
+-- firebase -- share deck
 -- detect winner
+-- bet money
+-- show odds
+-- show scoring card
+-- union type with one constructor for card and deck.
 -- one button does all steps.. dealer presses button...
 -- show odds
 --
@@ -47,7 +52,9 @@ import Browser
 import Chat
 import Element exposing (..)
 import Element.Background as Background
+import Element.Border as Border
 import Element.Events exposing (..)
+import Element.Font as Font
 import Element.Input as Input
 import Firebase
 import Html
@@ -56,6 +63,7 @@ import Styles exposing (..)
 
 
 
+--import Debugger.Overlay exposing (..)
 {-
 
 
@@ -123,15 +131,17 @@ main =
 
 
 type alias Model =
-    { game : Poker.Game
+    { game : Maybe Poker.Game
     , chat : Chat.Model
     , firebase : Firebase.Model
+    , page : Page
+    , nextRoomName : String
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model Poker.initGame Chat.init Firebase.init
+    ( Model Nothing Chat.init Firebase.init LoggedOut ""
     , Cmd.none
     )
 
@@ -177,13 +187,31 @@ type Msg
     = PokerMsg Poker.Msg
     | ChatMsg Chat.Msg
     | Firebase Firebase.Msg
+    | JoinRoom String
+    | NextRoomNameChanged String
+    | LobbyEnterWasPressed
+    | LeaveRoom
+
+
+type Page
+    = LoggedOut
+    | LoggingIn
+    | LoggedIn
+    | JoiningRoom
+    | InRoom String
+    | LeavingRoom
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         PokerMsg pmsg ->
-            updateModelFromPokerMsg model <| Poker.update pmsg model.game
+            case model.game of
+                Nothing ->
+                    ( model, Cmd.none )
+
+                Just game ->
+                    updateModelFromPokerMsg model <| Poker.update pmsg game
 
         ChatMsg chatMsg ->
             updateModelFromChatMsg model <| Chat.update chatMsg model.chat model.firebase
@@ -195,10 +223,22 @@ update msg model =
             in
             ( { model | firebase = a }, Cmd.map (\x -> Firebase x) b )
 
+        JoinRoom _ ->
+            ( { model | page = InRoom model.nextRoomName, game = Just (Poker.initGame model.nextRoomName) }, Cmd.none )
+
+        NextRoomNameChanged nextRoomName ->
+            ( { model | nextRoomName = nextRoomName }, Cmd.none )
+
+        LobbyEnterWasPressed ->
+            ( { model | page = InRoom model.nextRoomName, game = Just (Poker.initGame model.nextRoomName) }, Cmd.none )
+
+        LeaveRoom ->
+            ( { model | page = LoggedOut, game = Nothing }, Cmd.none )
+
 
 updateModelFromPokerMsg : Model -> ( Poker.Game, Cmd Poker.Msg ) -> ( Model, Cmd Msg )
 updateModelFromPokerMsg model ( game, cmd ) =
-    ( { model | game = game }
+    ( { model | game = Just game }
     , Cmd.map mapPokerMsg cmd
     )
 
@@ -294,22 +334,255 @@ subscriptions model =
 
 view : Model -> Html.Html Msg
 view model =
-    layout [] <|
-        row [ height fill, width fill ]
-            [ controlPanel model
-            , playingArea model
+    layout
+        []
+    <|
+        case model.page of
+            LoggedOut ->
+                viewWelcomePage
+
+            LoggingIn ->
+                viewPickUsername model
+
+            LoggedIn ->
+                viewLobby model
+
+            JoiningRoom ->
+                viewLobby model
+
+            InRoom _ ->
+                viewInGame model
+
+            LeavingRoom ->
+                viewInGame model
+
+
+viewWelcomePage : Element Msg
+viewWelcomePage =
+    column
+        [ height fill
+        , width fill
+        , Background.color darkgray
+        , Font.color white
+        , Font.family
+            [ Font.typeface "Lato"
+            , Font.typeface "Helvetica Neue"
+            , Font.typeface "Helvetica"
+            , Font.typeface "Arial"
+            , Font.sansSerif
             ]
+        ]
+        [ row
+            [ width fill
+            , paddingXY 15 13
+            , Background.color primary
+            ]
+            [ el [alignLeft] hamburger
+            , el [ alignBottom, centerX, paddingEach {top=2,bottom=2,left=0,right=0} ] (logo "NigelGames")
+            , el [ alignRight, width <| px 59 ] none
+            ]
+        , row
+            [ Background.color black
+            , width fill
+            , padding 13
+            , Font.size 14
+            , Border.shadow { offset = ( 0, 5 ), size = 1, blur = 10, color = black3 }
+            ]
+            [ el [ centerX ] (text "Looking for more players? Join the Discord Server!") ]
+        , row
+            [ width fill
+            , height fill
+            ]
+            [ column
+                [ centerX
+                , height fill
+                , width <| px 480
+                , padding 7
+                , spacing 0
+
+                --            , Element.explain Debug.todo
+                ]
+                [ column [ width fill ]
+                    [ h1hr
+                    , column [ width fill, spacing 11 ]
+                        [ h1 "Poker"
+                        , row [ spacing 6, centerX, padding 3 ] [ badge "deceit", badge "deduction" ]
+                        ]
+                    , h1hr
+                    ]
+                , paragraph [ Font.center, spacing 8, padding 4 ]
+                    [ text ("Poker is a game of risk, deduction, and luck for 2–8 players. " ++
+                    "Your goal is to win all the chips.")
+                    ]
+                ]
+            ]
+        , row [ width fill, Border.shadow { offset = ( 0, 0 ), blur = 40, size = 20, color = black75 } ]
+            -- button row
+            [ column [ padding 10, width fill, spacing 10, Background.color (Element.rgb255 34 34 34) ]
+                [ button "New Game"
+                , button "Join Game"
+                ]
+            ]
+        ]
+
+
+h1hr =
+    el [ width fill, paddingXY 0 21 ] (el [ width fill, Background.color barcol, height <| px 1 ] Element.none)
+
+
+h1 label =
+    el [ centerX, Font.size 39, padding 2 ] (text label)
+
+
+badge label =
+    el [ Border.rounded 4, Background.color barcol, paddingXY 13 3, Font.size 15, Font.bold ] (text label)
+
+
+centertext label =
+    el [ centerX ] (text label)
+
+
+hr color =
+    row [ width fill, height <| px 2, Background.color color ] []
+
+
+logo label =
+    el [ Font.color white, Font.size 26, Font.family [ Font.typeface "Baloo", Font.sansSerif ] ] (text label)
+
+
+hamburger =
+    Input.button
+        [ padding 5
+        , width <| px 44
+        , height <| px 34
+        , Background.color primary
+        , Border.color bluegray
+        , Border.width 1
+        , Border.rounded 4
+        ]
+        { label = hamburgerIcon
+        , onPress = Nothing
+        }
+
+
+white =
+    Element.rgb255 255 255 255
+
+
+bluegray =
+    Element.rgb255 40 65 91
+
+
+primary =
+    Element.rgb255 55 90 127
+
+
+darkgray =
+    Element.rgb255 34 34 34
+
+
+hover =
+    Element.rgb255 0x28 0x41 0x5B
+
+
+barcol =
+    Element.rgb255 0x46 0x45 0x45
+
+
+black =
+    Element.rgb255 0 0 0
+
+
+black75 =
+    Element.rgba255 0 0 0 0.75
+
+
+black3 =
+    Element.rgba255 0 0 0 0.3
+
+
+hamburgerIcon =
+    column [ width <| px 22, spacing 4, paddingXY 0 0, centerX, centerY ] [ hr white, hr white, hr white ]
+
+
+button label =
+    Input.button
+        [ centerY
+        , centerX
+        , width fill
+        , Font.size 36
+        , Font.family
+            [ Font.typeface "Lato"
+            , Font.typeface "Helvetica Neue"
+            , Font.typeface "Helvetica"
+            , Font.typeface "Arial"
+            , Font.sansSerif
+            ]
+        , paddingEach {top=21, bottom=23, left=0, right=0}
+        , Background.color primary
+        , Element.mouseOver [ Background.color hover ]
+        , Border.rounded 4
+        ]
+        { label = el [ centerX, Font.color (Element.rgb255 255 255 255) ] (text label)
+        , onPress = Nothing
+        }
+
+
+viewPickUsername : model -> Element Msg
+viewPickUsername model =
+    text "welcome"
+
+
+viewLobby : Model -> Element Msg
+viewLobby model =
+    column
+        [ height fill
+        , width fill
+        ]
+        [ el [ centerX, centerY, Font.bold, Font.size 120 ] (text "Welcome!")
+
+        --        , el [centerX, centerY] (text "Welcome!")
+        , row [ centerX, centerY, padding 100, spacing 10, width fill ]
+            [ Input.text
+                [ width fill
+                , spacing 10
+                , centerX
+                , onEnter LobbyEnterWasPressed
+                ]
+                { label = Input.labelAbove [ centerX ] (text "Enter the room code:")
+                , onChange = NextRoomNameChanged
+                , placeholder = Nothing -- Just (Input.placeholder [] (text ""))
+                , text = model.nextRoomName
+                }
+            , el [ Border.width 3 ]
+                (Input.button
+                    [ centerY, Font.size 50, padding 20, moveUp 5 ]
+                    { label = text ">"
+                    , onPress = Just (JoinRoom model.nextRoomName)
+                    }
+                )
+            ]
+        ]
+
+
+viewInGame : Model -> Element Msg
+viewInGame model =
+    row [ height fill, width fill ]
+        [ controlPanel model
+        , playingArea model
+        ]
 
 
 controlPanel : Model -> Element Msg
 controlPanel model =
     column
-        [ spacing 100
+        [ spacing 20
         , padding 20
         , height fill
         ]
         [ el [ centerX ] (viewUserControls model)
         , el [ centerX ] (Element.map mapChatMsg (Chat.viewChatWindow model.chat model.firebase))
+        , el [ centerX, alignBottom, Border.width 1, padding 10, Border.rounded 8 ] (Input.button [] { onPress = Just LeaveRoom, label = text "Leave Game" })
         ]
 
 
@@ -320,7 +593,12 @@ playingArea model =
         , width <| fillPortion 5
         ]
         [ if Firebase.isSignedIn model.firebase then
-            Element.map mapPokerMsg (Poker.viewTable model.game)
+            case model.game of
+                Just g ->
+                    Element.map mapPokerMsg (Poker.viewTable g)
+
+                Nothing ->
+                    row [] []
 
           else
             viewUserControls model

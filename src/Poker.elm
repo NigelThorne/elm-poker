@@ -6,7 +6,7 @@ import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
-import List.Extra exposing (getAt, setAt, updateAt)
+import List.Extra exposing ( updateAt)
 import Random
 import Random.Extra
 
@@ -44,7 +44,8 @@ import Random.Extra
 
 
 type alias Game =
-    { players : List Player
+    { uid : String
+    , players : List Player
     , deck : Deck
     , community : List Card
     , steps : List Msg
@@ -104,7 +105,6 @@ type Status
 
 type alias ShuffleKey =
     List Int
-
 
 allSuites : List Suit
 allSuites =
@@ -318,9 +318,9 @@ initSteps =
     [ ShuffleDeck, Flop, Turn, River, ResetTable ]
 
 
-initGame : Game
-initGame =
-    Game initHands newDeck [] initSteps
+initGame : String -> Game
+initGame id =
+    Game id initHands newDeck [] initSteps
 
 
 

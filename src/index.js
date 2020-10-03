@@ -106,4 +106,55 @@ app.ports.saveMessage.subscribe(data => {
     });
 });
 
+// app.ports.saveMessage.subscribe((data) => {
+//   console.log(`saving message to database : ${data.content}`);
+
+//   db.collection(`users/${data.uid}/messages`)
+//     .add({
+//       content: { text: data.content, timestamp: Date.now() },
+//     })
+//     .catch((error) => {
+//       app.ports.signInError.send({
+//         code: error.code,
+//         message: error.message,
+//       });
+//     });
+// });
+
+// app.ports.signIn.subscribe(() => {
+//   firebase
+//     .auth()
+//     .signInWithPopup(provider)
+//     .then(result => {
+//       result.user.getIdToken().then(idToken => {
+//         app.ports.signInInfo.send({
+//           token: idToken,
+//           email: result.user.email,
+//           uid: result.user.uid
+//         });
+//       });
+//     })
+//     .catch(error => {
+//       app.ports.signInError.send({
+//         code: error.code,
+//         message: error.message
+//       });
+//     });
+// });
+
+// app.ports.saveGame.subscribe((data) => {
+//   console.log(`saving game to database : ${data.content}`);
+
+//   db.collection(`users/${data.uid}/game`)
+//     .add({
+//       content: { text: data.content, timestamp: Date.now() },
+//     })
+//     .catch((error) => {
+//       app.ports.signInError.send({
+//         code: error.code,
+//         message: error.message,
+//       });
+//     });
+// });
+
 registerServiceWorker();
