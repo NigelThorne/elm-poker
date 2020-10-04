@@ -1,8 +1,8 @@
-port module Firebase exposing (Model, setError, messageEncoder, errorPrinter,Msg(..),init,update,subscriptions, isSignedIn)
+port module Firebase exposing (Model, Msg(..), errorPrinter, init, isSignedIn, messageEncoder, setError, subscriptions, update)
 
 import Json.Decode
-import Json.Encode
 import Json.Decode.Pipeline
+import Json.Encode
 
 
 port signIn : () -> Cmd msg
@@ -41,6 +41,7 @@ init : Model
 init =
     { userData = Maybe.Nothing, error = emptyError }
 
+
 isSignedIn : Model -> Bool
 isSignedIn model =
     case model.userData of
@@ -49,6 +50,7 @@ isSignedIn model =
 
         _ ->
             True
+
 
 emptyError : ErrorData
 emptyError =
@@ -126,13 +128,13 @@ userDataDecoder =
         |> Json.Decode.Pipeline.required "uid" Json.Decode.string
 
 
-
 logInErrorDecoder : Json.Decode.Decoder ErrorData
 logInErrorDecoder =
     Json.Decode.succeed ErrorData
         |> Json.Decode.Pipeline.required "code" (Json.Decode.nullable Json.Decode.string)
         |> Json.Decode.Pipeline.required "message" (Json.Decode.nullable Json.Decode.string)
         |> Json.Decode.Pipeline.required "credential" (Json.Decode.nullable Json.Decode.string)
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =

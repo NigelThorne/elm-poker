@@ -19,6 +19,7 @@ buttonStyle =
     , padding 8
     ]
 
+
 onEnter : msg -> Element.Attribute msg
 onEnter msg =
     Element.htmlAttribute
@@ -34,3 +35,39 @@ onEnter msg =
                     )
             )
         )
+
+
+hover =
+    Element.rgb255 0x28 0x41 0x5B
+
+
+barcol =
+    Element.rgb255 0x46 0x45 0x45
+
+
+black =
+    Element.rgb255 0 0 0
+
+
+black75 =
+    Element.rgba255 0 0 0 0.75
+
+
+black3 =
+    Element.rgba255 0 0 0 0.3
+
+
+white =
+    Element.rgb255 255 255 255
+
+
+bluegray =
+    Element.rgb255 40 65 91
+
+
+primary =
+    Element.rgb255 55 90 127
+
+
+darkgray =
+    Element.rgb255 34 34 34

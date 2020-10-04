@@ -13,6 +13,8 @@ import Styles exposing (..)
 
 
 port saveMessage : Json.Encode.Value -> Cmd msg
+
+
 port receiveMessages : (Json.Encode.Value -> msg) -> Sub msg
 
 
@@ -240,8 +242,8 @@ viewChatWindow model firebase =
                 , width <| px 300
                 , height <| px 600
                 ]
-                [ el [centerX] (text "Messages:")
-                , column [scrollbars, height fill, width fill ] <|
+                [ el [ centerX ] (text "Messages:")
+                , column [ scrollbars, height fill, width fill ] <|
                     List.map
                         (\m -> paragraph [] [ text m.text ])
                         model.messages
@@ -252,7 +254,7 @@ viewChatWindow model firebase =
                 column [ spacing 10, centerX, width <| px 300 ]
                     [ Input.text
                         [ onEnter EnterWasPressed ]
-                        { label = Input.labelHidden "Message to send"-- [] (el [centerX] (text "Message to send"))
+                        { label = Input.labelHidden "Message to send" -- [] (el [centerX] (text "Message to send"))
                         , onChange = InputChanged
                         , placeholder = Just (Input.placeholder [] (text "message"))
                         , text = model.inputContent
@@ -260,7 +262,7 @@ viewChatWindow model firebase =
                     , Input.button
                         buttonStyle
                         { onPress = Just SaveMessage
-                        , label = el [centerX] (text "Save new message")
+                        , label = el [ centerX ] (text "Save new message")
                         }
                     ]
 

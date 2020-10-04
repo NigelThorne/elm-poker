@@ -58,6 +58,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Firebase
 import Html
+import Page.PokerTable
 import Poker as Poker
 import Styles exposing (..)
 
@@ -377,8 +378,8 @@ viewWelcomePage =
             , paddingXY 15 13
             , Background.color primary
             ]
-            [ el [alignLeft] hamburger
-            , el [ alignBottom, centerX, paddingEach {top=2,bottom=2,left=0,right=0} ] (logo "NigelGames")
+            [ el [ alignLeft ] hamburger
+            , el [ alignBottom, centerX, paddingEach { top = 2, bottom = 2, left = 0, right = 0 } ] (logo "NigelGames")
             , el [ alignRight, width <| px 59 ] none
             ]
         , row
@@ -411,8 +412,7 @@ viewWelcomePage =
                     , h1hr
                     ]
                 , paragraph [ Font.center, spacing 8, padding 4 ]
-                    [ text ("Poker is a game of risk, deduction, and luck for 2–8 players. " ++
-                    "Your goal is to win all the chips.")
+                    [ text "Poker is a game of risk, deduction, and luck for 2–8 players. Your goal is to win all the chips."
                     ]
                 ]
             ]
@@ -465,42 +465,6 @@ hamburger =
         }
 
 
-white =
-    Element.rgb255 255 255 255
-
-
-bluegray =
-    Element.rgb255 40 65 91
-
-
-primary =
-    Element.rgb255 55 90 127
-
-
-darkgray =
-    Element.rgb255 34 34 34
-
-
-hover =
-    Element.rgb255 0x28 0x41 0x5B
-
-
-barcol =
-    Element.rgb255 0x46 0x45 0x45
-
-
-black =
-    Element.rgb255 0 0 0
-
-
-black75 =
-    Element.rgba255 0 0 0 0.75
-
-
-black3 =
-    Element.rgba255 0 0 0 0.3
-
-
 hamburgerIcon =
     column [ width <| px 22, spacing 4, paddingXY 0 0, centerX, centerY ] [ hr white, hr white, hr white ]
 
@@ -518,7 +482,7 @@ button label =
             , Font.typeface "Arial"
             , Font.sansSerif
             ]
-        , paddingEach {top=21, bottom=23, left=0, right=0}
+        , paddingEach { top = 21, bottom = 23, left = 0, right = 0 }
         , Background.color primary
         , Element.mouseOver [ Background.color hover ]
         , Border.rounded 4
@@ -595,10 +559,10 @@ playingArea model =
         [ if Firebase.isSignedIn model.firebase then
             case model.game of
                 Just g ->
-                    Element.map mapPokerMsg (Poker.viewTable g)
+                    Element.map mapPokerMsg (Page.PokerTable.viewTable g)
 
                 Nothing ->
-                    row [] []
+                    Element.none
 
           else
             viewUserControls model
@@ -606,7 +570,7 @@ playingArea model =
             [ width fill
             , Background.color <| rgb255 0 123 23
             ]
-            (Element.map mapPokerMsg Poker.pokerControls)
+            (Element.map mapPokerMsg Page.PokerTable.pokerControls)
         ]
 
 
