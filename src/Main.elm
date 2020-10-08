@@ -63,9 +63,9 @@ import Page.GameDetails exposing (..)
 import Page.PokerTable
 import Data.Poker as Poker
 import Styles exposing (..)
+import Page.NewGame
 import Url
-
-import Url.Parser exposing (Parser, (</>), int, map, oneOf, s, string)
+import Route
 
 
 
@@ -140,43 +140,22 @@ main =
 
 type alias Model =
     { key : Nav.Key
-    , url : Url.Url
+    , route : Maybe Route.Route 
     , game : Maybe Poker.Game
     , chat : Chat.Model
     , firebase : Firebase.Model
-    , page : Page
     , nextRoomName : String
     }
 
-
-type Page
-    = PokerHome
-    | InRoom String
-
-type Route
-  = Topic String
-  | Blog Int
-  | User String
-  | Comment String Int
-
-routeParser : Parser (Route -> a) a
-routeParser =
-  oneOf
-    [ Url.Parser.map Topic   (s "topic" </> string)
-    , Url.Parser.map Blog    (s "blog" </> int)
-    , Url.Parser.map User    (s "user" </> string)
-    , Url.Parser.map Comment (s "user" </> string </> s "comment" </> int)
-    ]
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
     ( { key = key
-      , url = url
+      , route = Route.fromUrl url
       , game = Nothing
       , chat = Chat.init { saveMessage = saveMessage }
       , firebase = Firebase.init { signIn = signIn, signOut = signOut }
-      , page = PokerHome
       , nextRoomName = ""
       }
     , Cmd.none
@@ -244,9 +223,7 @@ update msg model =
                     ( model, Nav.load href )
 
         UrlChanged url ->
-            ( { model | url = url }
-            , Cmd.none
-            )
+            changeRouteTo (Route.fromUrl url) model
 
         PokerMsg pmsg ->
             case model.game of
@@ -264,19 +241,35 @@ update msg model =
                 ( a, b ) =
                     Firebase.update fmsg model.firebase
             in
-            ( { model | firebase = a }, Cmd.map (\x -> Firebase x) b )
+            ( { model | firebase = a }, Cmd.map Firebase b )
 
         JoinRoom _ ->
-            ( { model | page = InRoom model.nextRoomName, game = Just (Poker.initGame model.nextRoomName) }, Cmd.none )
+            ( { model | route = Just (Route.InGame model.nextRoomName), game = Just (Poker.initGame model.nextRoomName) }, Cmd.none )
 
         NextRoomNameChanged nextRoomName ->
             ( { model | nextRoomName = nextRoomName }, Cmd.none )
 
         LobbyEnterWasPressed ->
-            ( { model | page = InRoom model.nextRoomName, game = Just (Poker.initGame model.nextRoomName) }, Cmd.none )
+            ( { model | route = Just (Route.InGame model.nextRoomName), game = Just (Poker.initGame model.nextRoomName) }, Cmd.none )
 
         LeaveRoom ->
-            ( { model | page = PokerHome, game = Nothing }, Cmd.none )
+            ( { model | route = Just Route.Home, game = Nothing }, Cmd.none )
+
+changeRouteTo : Maybe Route.Route -> Model -> ( Model, Cmd Msg )
+changeRouteTo maybeRoute model =
+    case maybeRoute of
+            Nothing ->
+                ( { model | route = Nothing }, Cmd.none )
+            Just (Route.InGame name) -> 
+                ( { model | route = maybeRoute, game = Just (Poker.initGame model.nextRoomName) }, Cmd.none )
+            Just _ ->
+                ( { model | route = maybeRoute } , Cmd.none)
+
+updateWith : (subModel -> Model) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
+updateWith toModel toMsg model ( subModel, subCmd ) =
+    ( toModel subModel
+    , Cmd.map toMsg subCmd
+    )
 
 
 updateModelFromPokerMsg : Model -> ( Poker.Game, Cmd Poker.Msg ) -> ( Model, Cmd Msg )
@@ -395,32 +388,44 @@ subscriptions model =
 
 
 view : Model -> Browser.Document Msg
-view model =
+view model = 
     { title = "title"
     , body =
         [ layout
             []
           <|
             column [ width fill, height fill ]
-                [ row [ spacing 100 ] [ text (Url.toString model.url), link [] { label = text "Home", url = "/home" } ]
-                , case model.page of
-                    PokerHome ->
-                        viewGameDetailsPage
-
-                    -- LoggingIn ->
-                    --     viewPickUsername model
-                    -- LoggedIn ->
-                    --     viewLobby model
-                    -- JoiningRoom ->
-                    --     viewLobby model
-                    InRoom name ->
-                        viewInGame model name
-
-                -- LeavingRoom ->
-                --     viewInGame model
+                [ row [ spacing 100 ]  
+                    [    text (Route.toString model.route) 
+                    ,    link [] { label = text "Home", url = "/home" }
+                    ,    link [] { label = text "NewGame", url = "/poker/newgame" }
+                    ,    link [] { label = text "InGame", url = "/poker/game/test" }
+                    ]
+                , viewPage model
                 ]
         ]
     }
+
+viewPage model =
+    case model.route of
+        Just Route.Home ->
+            viewGameDetailsPage
+
+        Just Route.NewGame -> 
+            Page.NewGame.view model
+        -- LoggingIn ->
+        --     viewPickUsername model
+        -- LoggedIn ->
+        --     viewLobby model
+        -- JoiningRoom ->
+        --     viewLobby model
+        Just (Route.InGame name) ->
+            viewInGame model name
+
+        Nothing -> 
+            text ("404 Unknown page")
+    -- LeavingRoom ->
+    --     viewInGame model
 
 
 viewPickUsername : model -> Element Msg
@@ -487,7 +492,7 @@ playingArea model =
         [ height fill
         , width <| fillPortion 5
         ]
-        [ if Firebase.isSignedIn model.firebase then
+        [ -- if Firebase.isSignedIn model.firebase then
             case model.game of
                 Just g ->
                     Element.map mapPokerMsg (Page.PokerTable.viewTable g)
@@ -495,12 +500,15 @@ playingArea model =
                 Nothing ->
                     Element.none
 
-          else
-            viewUserControls model
+        --   else
+        --     Element.none
         , el
             [ width fill
+            , height fill
             , Background.color <| rgb255 0 123 23
-            ]
+            ] Element.none
+        , el [width fill
+            ,  Background.color <| rgb255 123 123 123]
             (Element.map mapPokerMsg Page.PokerTable.pokerControls)
         ]
 

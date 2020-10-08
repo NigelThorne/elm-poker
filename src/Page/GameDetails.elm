@@ -70,12 +70,11 @@ viewGameDetailsPage =
         , row [ width fill, Border.shadow { offset = ( 0, 0 ), blur = 40, size = 20, color = black75 } ]
             -- button row
             [ column [ padding 10, width fill, spacing 10, Background.color (Element.rgb255 34 34 34) ]
-                [ button "New Game"
-                , button "Join Game"
+                [ button "New Game" "/poker/newgame"
+                , button "Join Game" "/poker/joingame"
                 ]
             ]
         ]
-
 
 h1hr =
     el [ width fill, paddingXY 0 21 ] (el [ width fill, Background.color barcol, height <| px 1 ] Element.none)
@@ -120,8 +119,8 @@ hamburgerIcon =
     column [ width <| px 22, spacing 4, paddingXY 0 0, centerX, centerY ] [ hr white, hr white, hr white ]
 
 
-button label =
-    Input.button
+button label url =
+    Element.link
         [ centerY
         , centerX
         , width fill
@@ -139,5 +138,5 @@ button label =
         , Border.rounded 4
         ]
         { label = el [ centerX, Font.color (Element.rgb255 255 255 255) ] (text label)
-        , onPress = Nothing
+        , url = url
         }
