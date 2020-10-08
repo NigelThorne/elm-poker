@@ -1,25 +1,15 @@
-port module Firebase exposing (Model, Msg(..), errorPrinter, init, isSignedIn, messageEncoder, setError, subscriptions, update)
+module Firebase exposing (Model, Msg(..), signInError, errorPrinter, init, isSignedIn, messageEncoder, setError, signInInfo, update)
 
 import Json.Decode
 import Json.Decode.Pipeline
 import Json.Encode
 
 
-port signIn : () -> Cmd msg
-
-
-port signOut : () -> Cmd msg
-
-
-port signInInfo : (Json.Encode.Value -> msg) -> Sub msg
-
-
-port signInError : (Json.Encode.Value -> msg) -> Sub msg
-
-
 type alias Model =
     { userData : Maybe UserData
     , error : ErrorData
+    , signIn : () -> Cmd Msg
+    , signOut : () -> Cmd Msg
     }
 
 
@@ -37,9 +27,12 @@ type alias UserData =
     }
 
 
-init : Model
-init =
-    { userData = Maybe.Nothing, error = emptyError }
+
+--init : Model
+
+
+init {signIn, signOut} =
+    { userData = Maybe.Nothing, error = emptyError, signIn = signIn, signOut = signOut }
 
 
 isSignedIn : Model -> Bool
@@ -69,14 +62,14 @@ setError model error =
     { model | error = messageToError <| Json.Decode.errorToString error }
 
 
-update : Msg -> Model -> ( Model, Cmd msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         LogIn ->
-            ( model, signIn () )
+            ( model, model.signIn () )
 
         LogOut ->
-            ( { model | userData = Maybe.Nothing, error = emptyError }, signOut () )
+            ( { model | userData = Maybe.Nothing, error = emptyError }, model.signOut () )
 
         LoggedInData result ->
             case result of
@@ -136,9 +129,9 @@ logInErrorDecoder =
         |> Json.Decode.Pipeline.required "credential" (Json.Decode.nullable Json.Decode.string)
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.batch
-        [ signInInfo (Json.Decode.decodeValue userDataDecoder >> LoggedInData)
-        , signInError (Json.Decode.decodeValue logInErrorDecoder >> LoggedInError)
-        ]
+signInInfo : Json.Encode.Value -> Msg
+signInInfo =
+    Json.Decode.decodeValue userDataDecoder >> LoggedInData
+signInError : Json.Encode.Value -> Msg
+signInError =
+    Json.Decode.decodeValue logInErrorDecoder >> LoggedInError

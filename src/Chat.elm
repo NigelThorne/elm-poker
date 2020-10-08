@@ -1,4 +1,4 @@
-port module Chat exposing (Model, Msg(..), init, subscriptions, update, viewChatWindow)
+module Chat exposing (Model, Msg(..), messagesReceived, init, update, viewChatWindow)
 
 import Element exposing (..)
 import Element.Border as Border
@@ -10,12 +10,6 @@ import Json.Decode
 import Json.Decode.Pipeline
 import Json.Encode
 import Styles exposing (..)
-
-
-port saveMessage : Json.Encode.Value -> Cmd msg
-
-
-port receiveMessages : (Json.Encode.Value -> msg) -> Sub msg
 
 
 
@@ -53,6 +47,7 @@ port receiveMessages : (Json.Encode.Value -> msg) -> Sub msg
 type alias Model =
     { inputContent : String
     , messages : List Message
+    , saveMessage : Json.Encode.Value -> Cmd Msg
     }
 
 
@@ -94,9 +89,10 @@ type alias Message =
 -}
 
 
-init : Model
-init =
-    { inputContent = "", messages = [] }
+
+init : {saveMessage : (Json.Encode.Value -> Cmd Msg)} -> Model
+init args =
+    { inputContent = "", messages = [], saveMessage = args.saveMessage }
 
 
 
@@ -142,7 +138,7 @@ update : Msg -> Model -> Firebase.Model -> ( Model, Firebase.Model, Cmd Msg )
 update msg model firebase =
     case msg of
         SaveMessage ->
-            ( { model | inputContent = "" }, firebase, saveMessage <| messageEncoder model firebase )
+            ( { model | inputContent = "" }, firebase, model.saveMessage <| messageEncoder model firebase )
 
         InputChanged value ->
             ( { model | inputContent = value }, firebase, Cmd.none )
@@ -156,7 +152,7 @@ update msg model firebase =
                     ( model, Firebase.setError firebase error, Cmd.none )
 
         EnterWasPressed ->
-            ( { model | inputContent = "" }, firebase, saveMessage <| messageEncoder model firebase )
+            ( { model | inputContent = "" }, firebase, model.saveMessage <| messageEncoder model firebase )
 
 
 onEnter : msg -> Element.Attribute msg
@@ -304,8 +300,6 @@ viewChatWindow model firebase =
 -}
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.batch
-        [ receiveMessages (Json.Decode.decodeValue messageListDecoder >> MessagesReceived)
-        ]
+messagesReceived : Json.Encode.Value -> Msg
+messagesReceived =
+    Json.Decode.decodeValue messageListDecoder >> MessagesReceived

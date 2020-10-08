@@ -57,7 +57,6 @@ type alias Player =
     , name : String
     }
 
-
 type alias Deck =
     { cards : List Card }
 
