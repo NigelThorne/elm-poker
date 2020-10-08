@@ -49,25 +49,23 @@ port module Main exposing (main)
 --import Element.Font as Font
 
 import Browser
-import Chat
+import Browser.Navigation as Nav
+import Data.Chat as Chat
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
-import Firebase
-import Html
-import Page.PokerTable
-import Page.GameDetails exposing (..)
-import Poker as Poker
-import Styles exposing (..)
+import Data.Firebase as Firebase
 import Json.Encode
+import Page.GameDetails exposing (..)
+import Page.PokerTable
+import Data.Poker as Poker
+import Styles exposing (..)
 import Url
-import Browser.Navigation as Nav
 
-
-
+import Url.Parser exposing (Parser, (</>), int, map, oneOf, s, string)
 
 
 
@@ -98,14 +96,14 @@ import Browser.Navigation as Nav
 
 main : Program () Model Msg
 main =
-  Browser.application
-    { init = init
-    , view = view
-    , update = update
-    , subscriptions = subscriptions
-    , onUrlChange = UrlChanged
-    , onUrlRequest = LinkClicked
-    }
+    Browser.application
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        , onUrlChange = UrlChanged
+        , onUrlRequest = LinkClicked
+        }
 
 
 
@@ -150,19 +148,35 @@ type alias Model =
     , nextRoomName : String
     }
 
+
 type Page
     = PokerHome
     | InRoom String
 
+type Route
+  = Topic String
+  | Blog Int
+  | User String
+  | Comment String Int
 
-init : () -> Url.Url -> Nav.Key ->  ( Model, Cmd Msg )
-init flags url key =
-    ( { key =key 
+routeParser : Parser (Route -> a) a
+routeParser =
+  oneOf
+    [ Url.Parser.map Topic   (s "topic" </> string)
+    , Url.Parser.map Blog    (s "blog" </> int)
+    , Url.Parser.map User    (s "user" </> string)
+    , Url.Parser.map Comment (s "user" </> string </> s "comment" </> int)
+    ]
+
+
+init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init _ url key =
+    ( { key = key
       , url = url
       , game = Nothing
-      , chat = (Chat.init {saveMessage= saveMessage}) 
-      , firebase = (Firebase.init  {signIn = signIn, signOut = signOut} )
-      , page = PokerHome 
+      , chat = Chat.init { saveMessage = saveMessage }
+      , firebase = Firebase.init { signIn = signIn, signOut = signOut }
+      , page = PokerHome
       , nextRoomName = ""
       }
     , Cmd.none
@@ -218,9 +232,6 @@ type Msg
     | UrlChanged Url.Url
 
 
-
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -236,6 +247,7 @@ update msg model =
             ( { model | url = url }
             , Cmd.none
             )
+
         PokerMsg pmsg ->
             case model.game of
                 Nothing ->
@@ -322,6 +334,7 @@ mapChatMsg chatMsg =
 
 -}
 
+
 port signIn : () -> Cmd msg
 
 
@@ -333,6 +346,7 @@ port signInInfo : (Json.Encode.Value -> msg) -> Sub msg
 
 port signInError : (Json.Encode.Value -> msg) -> Sub msg
 
+
 port saveMessage : Json.Encode.Value -> Cmd msg
 
 
@@ -342,10 +356,12 @@ port receiveMessages : (Json.Encode.Value -> msg) -> Sub msg
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Sub.map ChatMsg (receiveMessages  Chat.messagesReceived)
+        [ Sub.map ChatMsg (receiveMessages Chat.messagesReceived)
         , Sub.map Firebase (signInInfo Firebase.signInInfo)
         , Sub.map Firebase (signInError Firebase.signInError)
         ]
+
+
 
 {-
 
@@ -381,28 +397,28 @@ subscriptions model =
 view : Model -> Browser.Document Msg
 view model =
     { title = "title"
-    , body = [
-        layout
+    , body =
+        [ layout
             []
-        <|
-            case model.page of
-                PokerHome ->
-                    viewGameDetailsPage
+          <|
+            column [ width fill, height fill ]
+                [ row [ spacing 100 ] [ text (Url.toString model.url), link [] { label = text "Home", url = "/home" } ]
+                , case model.page of
+                    PokerHome ->
+                        viewGameDetailsPage
 
-                -- LoggingIn ->
-                --     viewPickUsername model
-
-                -- LoggedIn ->
-                --     viewLobby model
-
-                -- JoiningRoom ->
-                --     viewLobby model
-
-                InRoom name ->
-                    viewInGame model name
+                    -- LoggingIn ->
+                    --     viewPickUsername model
+                    -- LoggedIn ->
+                    --     viewLobby model
+                    -- JoiningRoom ->
+                    --     viewLobby model
+                    InRoom name ->
+                        viewInGame model name
 
                 -- LeavingRoom ->
                 --     viewInGame model
+                ]
         ]
     }
 

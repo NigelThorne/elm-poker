@@ -1,4 +1,4 @@
-module Poker exposing (..)
+module Data.Poker exposing (..)
 
 import Element exposing (..)
 import Element.Background as Background

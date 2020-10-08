@@ -1,16 +1,12 @@
 module Page.PokerTable exposing (..)
 
-import Browser
-import Chat
+import Data.Poker exposing (..)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
-import Firebase
-import Html
-import Poker exposing (..)
 import Styles exposing (..)
 
 

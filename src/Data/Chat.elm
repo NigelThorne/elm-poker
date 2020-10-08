@@ -1,10 +1,10 @@
-module Chat exposing (Model, Msg(..), messagesReceived, init, update, viewChatWindow)
+module Data.Chat exposing (Model, Msg(..), messagesReceived, init, update, viewChatWindow)
 
 import Element exposing (..)
 import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Input as Input
-import Firebase
+import Data.Firebase as Firebase
 import Html.Events
 import Json.Decode
 import Json.Decode.Pipeline

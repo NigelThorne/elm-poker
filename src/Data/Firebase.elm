@@ -1,4 +1,4 @@
-module Firebase exposing (Model, Msg(..), signInError, errorPrinter, init, isSignedIn, messageEncoder, setError, signInInfo, update)
+module Data.Firebase exposing (Model, Msg(..), signInError, errorPrinter, init, isSignedIn, messageEncoder, setError, signInInfo, update)
 
 import Json.Decode
 import Json.Decode.Pipeline

@@ -1,19 +1,12 @@
 module Page.GameDetails exposing (..)
 
-import Browser
-import Chat
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
-import Firebase
-import Html
-import Page.PokerTable
-import Poker as Poker
 import Styles exposing (..)
-
 
 
 viewGameDetailsPage : Element msg
@@ -148,4 +141,3 @@ button label =
         { label = el [ centerX, Font.color (Element.rgb255 255 255 255) ] (text label)
         , onPress = Nothing
         }
-
