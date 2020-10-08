@@ -63,6 +63,8 @@ import Page.GameDetails exposing (..)
 import Poker as Poker
 import Styles exposing (..)
 import Json.Encode
+import Url
+import Browser.Navigation as Nav
 
 
 
@@ -96,12 +98,14 @@ import Json.Encode
 
 main : Program () Model Msg
 main =
-    Browser.element
-        { init = init
-        , update = update
-        , subscriptions = subscriptions
-        , view = view
-        }
+  Browser.application
+    { init = init
+    , view = view
+    , update = update
+    , subscriptions = subscriptions
+    , onUrlChange = UrlChanged
+    , onUrlRequest = LinkClicked
+    }
 
 
 
@@ -137,7 +141,9 @@ main =
 
 
 type alias Model =
-    { game : Maybe Poker.Game
+    { key : Nav.Key
+    , url : Url.Url
+    , game : Maybe Poker.Game
     , chat : Chat.Model
     , firebase : Firebase.Model
     , page : Page
@@ -149,9 +155,16 @@ type Page
     | InRoom String
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( Model Nothing (Chat.init {saveMessage= saveMessage}) (Firebase.init  {signIn = signIn, signOut = signOut} ) PokerHome ""
+init : () -> Url.Url -> Nav.Key ->  ( Model, Cmd Msg )
+init flags url key =
+    ( { key =key 
+      , url = url
+      , game = Nothing
+      , chat = (Chat.init {saveMessage= saveMessage}) 
+      , firebase = (Firebase.init  {signIn = signIn, signOut = signOut} )
+      , page = PokerHome 
+      , nextRoomName = ""
+      }
     , Cmd.none
     )
 
@@ -201,6 +214,8 @@ type Msg
     | NextRoomNameChanged String
     | LobbyEnterWasPressed
     | LeaveRoom
+    | LinkClicked Browser.UrlRequest
+    | UrlChanged Url.Url
 
 
 
@@ -209,6 +224,18 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        LinkClicked urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Nav.pushUrl model.key (Url.toString url) )
+
+                Browser.External href ->
+                    ( model, Nav.load href )
+
+        UrlChanged url ->
+            ( { model | url = url }
+            , Cmd.none
+            )
         PokerMsg pmsg ->
             case model.game of
                 Nothing ->
@@ -351,29 +378,33 @@ subscriptions model =
 -}
 
 
-view : Model -> Html.Html Msg
+view : Model -> Browser.Document Msg
 view model =
-    layout
-        []
-    <|
-        case model.page of
-            PokerHome ->
-                viewGameDetailsPage
+    { title = "title"
+    , body = [
+        layout
+            []
+        <|
+            case model.page of
+                PokerHome ->
+                    viewGameDetailsPage
 
-            -- LoggingIn ->
-            --     viewPickUsername model
+                -- LoggingIn ->
+                --     viewPickUsername model
 
-            -- LoggedIn ->
-            --     viewLobby model
+                -- LoggedIn ->
+                --     viewLobby model
 
-            -- JoiningRoom ->
-            --     viewLobby model
+                -- JoiningRoom ->
+                --     viewLobby model
 
-            InRoom name ->
-                viewInGame model name
+                InRoom name ->
+                    viewInGame model name
 
-            -- LeavingRoom ->
-            --     viewInGame model
+                -- LeavingRoom ->
+                --     viewInGame model
+        ]
+    }
 
 
 viewPickUsername : model -> Element Msg
