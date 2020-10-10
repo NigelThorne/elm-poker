@@ -8,7 +8,7 @@ import Url
 
 
 type Route
-    = Home 
+    = Home
     | NewGame
     | InGame String 
 

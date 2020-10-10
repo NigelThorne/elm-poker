@@ -1,5 +1,6 @@
 {
     "editor.tabSize": 2,
     "git.ignoreLimitWarning": true,
-    "elmLS.elmPath": "/Users/nigelthorne/.nvm/versions/node/v10.15.0/bin/elm"
+    "elmLS.elmPath": "/Users/nigelthorne/.nvm/versions/node/v10.15.0/bin/elm",
+    "editor.formatOnSave": true
 }

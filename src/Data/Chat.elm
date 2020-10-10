@@ -1,15 +1,9 @@
-module Data.Chat exposing (Model, Msg(..), messagesReceived, init, update, viewChatWindow)
+module Data.Chat exposing (Model, Msg(..), init, messagesReceived, update)
 
-import Element exposing (..)
-import Element.Border as Border
-import Element.Events exposing (..)
-import Element.Input as Input
 import Data.Firebase as Firebase
-import Html.Events
 import Json.Decode
 import Json.Decode.Pipeline
 import Json.Encode
-import Styles exposing (..)
 
 
 
@@ -57,44 +51,9 @@ type alias Message =
     }
 
 
-
-{-
-
-
-
-   IIIIIIIIII                  iiii          tttt
-   I::::::::I                 i::::i      ttt:::t
-   I::::::::I                  iiii       t:::::t
-   II::::::II                             t:::::t
-     I::::Innnn  nnnnnnnn    iiiiiiittttttt:::::ttttttt
-     I::::In:::nn::::::::nn  i:::::it:::::::::::::::::t
-     I::::In::::::::::::::nn  i::::it:::::::::::::::::t
-     I::::Inn:::::::::::::::n i::::itttttt:::::::tttttt
-     I::::I  n:::::nnnn:::::n i::::i      t:::::t
-     I::::I  n::::n    n::::n i::::i      t:::::t
-     I::::I  n::::n    n::::n i::::i      t:::::t
-     I::::I  n::::n    n::::n i::::i      t:::::t    tttttt
-   II::::::IIn::::n    n::::ni::::::i     t::::::tttt:::::t
-   I::::::::In::::n    n::::ni::::::i     tt::::::::::::::t
-   I::::::::In::::n    n::::ni::::::i       tt:::::::::::tt
-   IIIIIIIIIInnnnnn    nnnnnniiiiiiii         ttttttttttt
-
-
-
-
-
-
-
-
--}
-
-
-
-init : {saveMessage : (Json.Encode.Value -> Cmd Msg)} -> Model
+init : { saveMessage : Json.Encode.Value -> Cmd Msg } -> Model
 init args =
     { inputContent = "", messages = [], saveMessage = args.saveMessage }
-
-
 
 {-
 
@@ -155,22 +114,36 @@ update msg model firebase =
             ( { model | inputContent = "" }, firebase, model.saveMessage <| messageEncoder model firebase )
 
 
-onEnter : msg -> Element.Attribute msg
-onEnter msg =
-    Element.htmlAttribute
-        (Html.Events.on "keyup"
-            (Json.Decode.field "key" Json.Decode.string
-                |> Json.Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Json.Decode.succeed msg
 
-                        else
-                            Json.Decode.fail "Not the enter key"
-                    )
-            )
-        )
-
+{-
+ 
+                                                                                    
+                                                                                    
+           JJJJJJJJJJJ   SSSSSSSSSSSSSSS      OOOOOOOOO     NNNNNNNN        NNNNNNNN
+           J:::::::::J SS:::::::::::::::S   OO:::::::::OO   N:::::::N       N::::::N
+           J:::::::::JS:::::SSSSSS::::::S OO:::::::::::::OO N::::::::N      N::::::N
+           JJ:::::::JJS:::::S     SSSSSSSO:::::::OOO:::::::ON:::::::::N     N::::::N
+             J:::::J  S:::::S            O::::::O   O::::::ON::::::::::N    N::::::N
+             J:::::J  S:::::S            O:::::O     O:::::ON:::::::::::N   N::::::N
+             J:::::J   S::::SSSS         O:::::O     O:::::ON:::::::N::::N  N::::::N
+             J:::::j    SS::::::SSSSS    O:::::O     O:::::ON::::::N N::::N N::::::N
+             J:::::J      SSS::::::::SS  O:::::O     O:::::ON::::::N  N::::N:::::::N
+ JJJJJJJ     J:::::J         SSSSSS::::S O:::::O     O:::::ON::::::N   N:::::::::::N
+ J:::::J     J:::::J              S:::::SO:::::O     O:::::ON::::::N    N::::::::::N
+ J::::::J   J::::::J              S:::::SO::::::O   O::::::ON::::::N     N:::::::::N
+ J:::::::JJJ:::::::J  SSSSSSS     S:::::SO:::::::OOO:::::::ON::::::N      N::::::::N
+  JJ:::::::::::::JJ   S::::::SSSSSS:::::S OO:::::::::::::OO N::::::N       N:::::::N
+    JJ:::::::::JJ     S:::::::::::::::SS    OO:::::::::OO   N::::::N        N::::::N
+      JJJJJJJJJ        SSSSSSSSSSSSSSS        OOOOOOOOO     NNNNNNNN         NNNNNNN
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+ 
+-}
 
 messageEncoder : Model -> Firebase.Model -> Json.Encode.Value
 messageEncoder model firebase =
@@ -188,85 +161,6 @@ messageListDecoder : Json.Decode.Decoder (List Message)
 messageListDecoder =
     Json.Decode.succeed identity
         |> Json.Decode.Pipeline.required "messages" (Json.Decode.list messageDecoder)
-
-
-
-{-
-
-
-
-   VVVVVVVV           VVVVVVVV iiii
-   V::::::V           V::::::Vi::::i
-   V::::::V           V::::::V iiii
-   V::::::V           V::::::V
-    V:::::V           V:::::Viiiiiii     eeeeeeeeeeee  wwwwwww           wwwww           wwwwwww
-     V:::::V         V:::::V i:::::i   ee::::::::::::ee w:::::w         w:::::w         w:::::w
-      V:::::V       V:::::V   i::::i  e::::::eeeee:::::eew:::::w       w:::::::w       w:::::w
-       V:::::V     V:::::V    i::::i e::::::e     e:::::e w:::::w     w:::::::::w     w:::::w
-        V:::::V   V:::::V     i::::i e:::::::eeeee::::::e  w:::::w   w:::::w:::::w   w:::::w
-         V:::::V V:::::V      i::::i e:::::::::::::::::e    w:::::w w:::::w w:::::w w:::::w
-          V:::::V:::::V       i::::i e::::::eeeeeeeeeee      w:::::w:::::w   w:::::w:::::w
-           V:::::::::V        i::::i e:::::::e                w:::::::::w     w:::::::::w
-            V:::::::V        i::::::ie::::::::e                w:::::::w       w:::::::w
-             V:::::V         i::::::i e::::::::eeeeeeee         w:::::w         w:::::w
-              V:::V          i::::::i  ee:::::::::::::e          w:::w           w:::w
-               VVV           iiiiiiii    eeeeeeeeeeeeee           www             www
-
-
-
-
-
-
-
-
--}
-
-
-viewChatWindow : Model -> Firebase.Model -> Element Msg
-viewChatWindow model firebase =
-    column
-        [ width <| px 300
-        , spacing 10
-        , centerX
-        ]
-        [ column [ centerX ]
-            [ column
-                [ spacing 10
-                , Border.solid
-                , Border.width 1
-                , padding 10
-                , width <| px 300
-                , height <| px 600
-                ]
-                [ el [ centerX ] (text "Messages:")
-                , column [ scrollbars, height fill, width fill ] <|
-                    List.map
-                        (\m -> paragraph [] [ text m.text ])
-                        model.messages
-                ]
-            ]
-        , case firebase.userData of
-            Just _ ->
-                column [ spacing 10, centerX, width <| px 300 ]
-                    [ Input.text
-                        [ onEnter EnterWasPressed ]
-                        { label = Input.labelHidden "Message to send" -- [] (el [centerX] (text "Message to send"))
-                        , onChange = InputChanged
-                        , placeholder = Just (Input.placeholder [] (text "message"))
-                        , text = model.inputContent
-                        }
-                    , Input.button
-                        buttonStyle
-                        { onPress = Just SaveMessage
-                        , label = el [ centerX ] (text "Save new message")
-                        }
-                    ]
-
-            Maybe.Nothing ->
-                el [] (text "")
-        , el [] (text <| Firebase.errorPrinter firebase.error)
-        ]
-
 
 
 {-

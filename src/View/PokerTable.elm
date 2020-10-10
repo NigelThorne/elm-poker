@@ -1,4 +1,4 @@
-module Page.PokerTable exposing (..)
+module View.PokerTable exposing (..)
 
 import Data.Poker exposing (..)
 import Element exposing (..)
@@ -157,7 +157,7 @@ pokerControls =
         , Input.button
             buttonstyle
             { onPress = Just DoStep
-            , label = Element.text "Do"
+            , label = Element.text "Deal"
             }
         ]
 

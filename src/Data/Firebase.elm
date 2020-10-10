@@ -1,4 +1,4 @@
-module Data.Firebase exposing (Model, Msg(..), signInError, errorPrinter, init, isSignedIn, messageEncoder, setError, signInInfo, update)
+module Data.Firebase exposing (Model, Msg(..), isLoggedIn, signInError, errorPrinter, init, isSignedIn, messageEncoder, setError, signInInfo, update)
 
 import Json.Decode
 import Json.Decode.Pipeline
@@ -135,3 +135,9 @@ signInInfo =
 signInError : Json.Encode.Value -> Msg
 signInError =
     Json.Decode.decodeValue logInErrorDecoder >> LoggedInError
+
+
+isLoggedIn : Model -> Bool
+isLoggedIn firebase = case firebase.userData of
+  Just _ -> True
+  _ -> False
