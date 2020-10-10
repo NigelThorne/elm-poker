@@ -15,6 +15,7 @@ port module Main exposing (main)
 -- ✅ card colors, table color, card backings
 -- ✅ name players
 -- ✅ messages in order
+
 -- url ->  join room
 -- join room -> url
 -- firebase -- share deck
@@ -136,7 +137,6 @@ main =
 
 
 -}
-
 
 type alias Model =
     { key : Nav.Key
@@ -261,9 +261,10 @@ changeRouteTo maybeRoute model =
             Nothing ->
                 ( { model | route = Nothing }, Cmd.none )
             Just (Route.InGame name) -> 
-                ( { model | route = maybeRoute, game = Just (Poker.initGame model.nextRoomName) }, Cmd.none )
+                ( { model | route = maybeRoute, game = Just (Poker.initGame name) }, Cmd.none )
             Just _ ->
                 ( { model | route = maybeRoute } , Cmd.none)
+
 
 updateWith : (subModel -> Model) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
 updateWith toModel toMsg model ( subModel, subCmd ) =
@@ -329,20 +330,11 @@ mapChatMsg chatMsg =
 
 
 port signIn : () -> Cmd msg
-
-
 port signOut : () -> Cmd msg
-
-
 port signInInfo : (Json.Encode.Value -> msg) -> Sub msg
-
-
 port signInError : (Json.Encode.Value -> msg) -> Sub msg
 
-
 port saveMessage : Json.Encode.Value -> Cmd msg
-
-
 port receiveMessages : (Json.Encode.Value -> msg) -> Sub msg
 
 
@@ -395,8 +387,8 @@ view model =
             []
           <|
             column [ width fill, height fill ]
-                [ row [ spacing 100 ]  
-                    [    text (Route.toString model.route) 
+                [ row [ centerX, spacing 100 ]  
+                    [    el [] (text (Route.toString model.route)) 
                     ,    link [] { label = text "Home", url = "/home" }
                     ,    link [] { label = text "NewGame", url = "/poker/newgame" }
                     ,    link [] { label = text "InGame", url = "/poker/game/test" }

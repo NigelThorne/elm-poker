@@ -1,11 +1,7 @@
 module Data.Poker exposing (..)
 
 import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
 import Element.Events exposing (..)
-import Element.Font as Font
-import Element.Input as Input
 import List.Extra exposing (updateAt)
 import Random
 import Random.Extra
@@ -57,6 +53,7 @@ type alias Player =
     , name : String
     }
 
+
 type alias Deck =
     { cards : List Card }
 
@@ -105,6 +102,38 @@ type Status
 type alias ShuffleKey =
     List Int
 
+
+{-
+
+    Poker: 
+
+    GameState -- describes a game of Poker
+    * players 
+        each have a seat at the table. 
+        each round 
+    Chips
+    Deck
+    player
+        stake
+        hand
+            cards
+    seats
+    cards
+    pot
+        round
+            hand
+            stakes
+
+
+
+
+
+   Actions :-
+   * Deal
+   * 
+   * Active player  
+
+-}
 
 allSuites : List Suit
 allSuites =

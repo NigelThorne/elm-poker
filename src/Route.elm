@@ -1,14 +1,16 @@
 module Route exposing (..)
 
 
+
 import Url.Parser exposing ((</>), Parser, int, map, oneOf, s, string, top)
 import Html exposing (a)
 import Url
 
+
 type Route
     = Home 
     | NewGame
-    | InGame String
+    | InGame String 
 
 toString : Maybe Route -> String
 toString route = 
