@@ -114,7 +114,6 @@ type alias Model =
     , state : PageState
     , chat : Chat.Model
     , firebase : Firebase.Model
-    , nextRoomName : String
     }
 
 
@@ -140,7 +139,6 @@ init _ url key =
       , route = route
       , chat = Chat.init { saveMessage = saveMessage }
       , firebase = Firebase.init { signIn = signIn, signOut = signOut }
-      , nextRoomName = ""
       , state = initPageState route
       }
     , Cmd.none
@@ -277,14 +275,6 @@ changeRouteTo maybeRoute model =
     ( { model | state = initPageState maybeRoute, route = maybeRoute }, Cmd.none )
 
 
-
--- updateWith : (subModel -> Model) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
--- updateWith toModel toMsg model ( subModel, subCmd ) =
---     ( toModel subModel
---     , Cmd.map toMsg subCmd
---     )
-
-
 updateModelFromPokerMsg : Poker.Msg -> Model -> ( Model, Cmd Msg )
 updateModelFromPokerMsg msg model =
     case model.state of
@@ -297,15 +287,6 @@ updateModelFromPokerMsg msg model =
 
         _ ->
             ( model, Cmd.none )
-
-
-
--- updatePageState : Model -> Msg -> (Model, Cmd Msg)
--- updatePageState model msg =
---     let
---         (nextPageState, cmd) =
---     in
---     ({ model | state = nextPageState}, Cmd.map toPageMessage cmd)
 
 
 updateModelFromChatMsg : Model -> ( Chat.Model, Firebase.Model, Cmd Chat.Msg ) -> ( Model, Cmd Msg )
@@ -424,12 +405,6 @@ viewPage model =
 
         JoinGameState joinState ->
             Element.map JoinGameMsg (JoinGamePage.viewLobby joinState)
-
-
-
--- _ ->
---     text "404 Unknown page"
-
 
 viewPickUsername : model -> Element Msg
 viewPickUsername model =
