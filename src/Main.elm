@@ -112,7 +112,6 @@ type alias Model =
     { key : Nav.Key
     , route : Maybe Route.Route
     , state : PageState
-    , chat : Chat.Model
     , firebase : Firebase.Model
     }
 
@@ -137,7 +136,6 @@ init _ url key =
     in
     ( { key = key
       , route = route
-      , chat = Chat.init { saveMessage = saveMessage }
       , firebase = Firebase.init { signIn = signIn, signOut = signOut }
       , state = initPageState route
       }
@@ -235,12 +233,21 @@ update msg model =
             updateModelFromPokerMsg pmsg model
 
         ChatMsg chatMsg ->
-            updateModelFromChatMsg model <| Chat.update chatMsg model.chat model.firebase
+            case model.state of
+                PokerGameState pstate ->
+                    let
+                        ( chat, firebase, cmd ) =
+                            Chat.update chatMsg pstate.chat model.firebase
+                    in
+                    ( { model | state = PokerGameState { pstate | chat = chat }, firebase = firebase }, Cmd.map ChatMsg cmd )
+
+                _ ->
+                    ( model, Cmd.none )
 
         Firebase fmsg ->
             let
                 ( a, b ) =
-                    Firebase.update fmsg model.firebase 
+                    Firebase.update fmsg model.firebase
             in
             ( { model | firebase = a }, Cmd.map Firebase b )
 
@@ -264,10 +271,9 @@ update msg model =
             changeRouteTo (Just Route.Home) model
 
 
-
-updatePageState : (a -> PageState) -> (b -> Msg) -> Model -> (a, Cmd b) -> (Model, Cmd Msg)
-updatePageState  toPageState toMsg model ( next, cmd )  =
-        ( { model | state = toPageState next }, Cmd.map toMsg cmd )
+updatePageState : (a -> PageState) -> (b -> Msg) -> Model -> ( a, Cmd b ) -> ( Model, Cmd Msg )
+updatePageState toPageState toMsg model ( next, cmd ) =
+    ( { model | state = toPageState next }, Cmd.map toMsg cmd )
 
 
 changeRouteTo : Maybe Route.Route -> Model -> ( Model, Cmd Msg )
@@ -287,13 +293,6 @@ updateModelFromPokerMsg msg model =
 
         _ ->
             ( model, Cmd.none )
-
-
-updateModelFromChatMsg : Model -> ( Chat.Model, Firebase.Model, Cmd Chat.Msg ) -> ( Model, Cmd Msg )
-updateModelFromChatMsg model ( chat, firebase, cmd ) =
-    ( { model | chat = chat, firebase = firebase }
-    , Cmd.map ChatMsg cmd
-    )
 
 
 
@@ -405,6 +404,7 @@ viewPage model =
 
         JoinGameState joinState ->
             Element.map JoinGameMsg (JoinGamePage.viewLobby joinState)
+
 
 viewPickUsername : model -> Element Msg
 viewPickUsername model =
