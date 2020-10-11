@@ -1,9 +1,6 @@
 module Route exposing (..)
 
-
-
 import Url.Parser exposing ((</>), Parser, int, map, oneOf, s, string, top)
-import Html exposing (a)
 import Url
 
 
@@ -11,6 +8,7 @@ type Route
     = Home
     | NewGame
     | InGame String 
+    | JoinGame
 
 toString : Maybe Route -> String
 toString route = 
@@ -25,6 +23,7 @@ routeParser =
     oneOf
         [ Url.Parser.map Home top
         , Url.Parser.map Home (s "home")
+        , Url.Parser.map JoinGame (s "join")
         , Url.Parser.map NewGame (s "poker" </> s "newgame")
         , Url.Parser.map InGame (s "poker" </> s "game" </> string)
         ]

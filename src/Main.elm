@@ -57,15 +57,15 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events exposing (..)
-import Element.Font as Font
 import Element.Input as Input
 import Page.GameDetails exposing (..)
-import Page.NewGame
-import View.PokerTable
+import Page.JoinGame as JoinGamePage exposing (State, viewLobby)
 import Ports exposing (..)
 import Route
 import Styles exposing (..)
 import Url
+import View.PokerTable
+
 
 main : Program () Model Msg
 main =
@@ -77,6 +77,8 @@ main =
         , onUrlChange = UrlChanged
         , onUrlRequest = LinkClicked
         }
+
+
 
 {-
 
@@ -119,6 +121,7 @@ type alias Model =
 type PageState
     = HomeState
     | PokerGameState GameState
+    | JoinGameState JoinGamePage.State
 
 
 type alias GameState =
@@ -155,6 +158,10 @@ initPageState route =
                 { game = Poker.initGame roomName
                 , chat = Chat.init { saveMessage = saveMessage }
                 }
+
+        Just Route.JoinGame ->
+            JoinGameState
+                { gameName = "" }
 
         _ ->
             HomeState
@@ -206,9 +213,7 @@ type Msg
     = GotPokerMsg Poker.Msg
     | ChatMsg Chat.Msg
     | Firebase Firebase.Msg
-    | JoinRoom String
-    | NextRoomNameChanged String
-    | LobbyEnterWasPressed
+    | JoinGameMsg JoinGamePage.Msg
     | LeaveRoom
     | LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
@@ -237,23 +242,34 @@ update msg model =
         Firebase fmsg ->
             let
                 ( a, b ) =
-                    Firebase.update fmsg model.firebase
+                    Firebase.update fmsg model.firebase 
             in
             ( { model | firebase = a }, Cmd.map Firebase b )
 
-        JoinRoom roomName ->
-            changeRouteTo (Just (Route.InGame roomName)) model
+        JoinGameMsg jmsg ->
+            case model.state of
+                JoinGameState jstate ->
+                    updatePageState JoinGameState JoinGameMsg model <| JoinGamePage.update jstate jmsg
 
+                _ ->
+                    ( model, Cmd.none )
+
+        -- JoinRoom roomName ->
+        --     changeRouteTo (Just (Route.InGame roomName)) model
         --            ( { model | route = Just (Route.InGame model.nextRoomName), game = Just (Poker.initGame model.nextRoomName) }, Cmd.none )
-        NextRoomNameChanged nextRoomName ->
-            ( { model | nextRoomName = nextRoomName }, Cmd.none )
-
-        LobbyEnterWasPressed ->
-            changeRouteTo (Just Route.Home) model
-
+        -- NextRoomNameChanged nextRoomName ->
+        --     ( { model | nextRoomName = nextRoomName }, Cmd.none )
+        -- LobbyEnterWasPressed ->
+        --     changeRouteTo (Just Route.Home) model
         --            ( { model | route = Just (Route.InGame model.nextRoomName), game = Just (Poker.initGame model.nextRoomName) }, Cmd.none )
         LeaveRoom ->
             changeRouteTo (Just Route.Home) model
+
+
+
+updatePageState : (a -> PageState) -> (b -> Msg) -> Model -> (a, Cmd b) -> (Model, Cmd Msg)
+updatePageState  toPageState toMsg model ( next, cmd )  =
+        ( { model | state = toPageState next }, Cmd.map toMsg cmd )
 
 
 changeRouteTo : Maybe Route.Route -> Model -> ( Model, Cmd Msg )
@@ -405,20 +421,25 @@ viewPage model =
         PokerGameState gameState ->
             viewInGame gameState model.firebase
 
-        -- _ ->
-        --     text "404 Unknown page"
+        JoinGameState joinState ->
+            Element.map JoinGameMsg (JoinGamePage.viewLobby joinState)
+
+
+
+-- _ ->
+--     text "404 Unknown page"
+
 
 viewPickUsername : model -> Element Msg
 viewPickUsername model =
     text "welcome"
 
 
-
 viewInGame : GameState -> Firebase.Model -> Element Msg
 viewInGame model firebase =
     row [ height fill, width fill ]
         [ controlPanel model firebase
-        , playingArea model.game 
+        , playingArea model.game
         ]
 
 
@@ -433,6 +454,7 @@ controlPanel model firebase =
         , el [ centerX ] (Element.map ChatMsg (viewChatWindow model.chat firebase))
         , el [ centerX, alignBottom, Border.width 1, padding 10, Border.rounded 8 ] (Input.button [] { onPress = Just LeaveRoom, label = text "Leave Game" })
         ]
+
 
 playingArea : Poker.Game -> Element Msg
 playingArea game =
@@ -513,24 +535,23 @@ viewChatWindow model firebase =
                         model.messages
                 ]
             ]
-        , case Firebase.isLoggedIn firebase of
-            True ->
-                column [ spacing 10, centerX, width <| px 300 ]
-                    [ Input.text
-                        [ onEnter Chat.EnterWasPressed ]
-                        { label = Input.labelHidden "Message to send" -- [] (el [centerX] (text "Message to send"))
-                        , onChange = Chat.InputChanged
-                        , placeholder = Just (Input.placeholder [] (text "message"))
-                        , text = model.inputContent
-                        }
-                    , Input.button
-                        buttonStyle
-                        { onPress = Just Chat.SaveMessage
-                        , label = el [ centerX ] (text "Save new message")
-                        }
-                    ]
+        , if Firebase.isLoggedIn firebase then
+            column [ spacing 10, centerX, width <| px 300 ]
+                [ Input.text
+                    [ onEnter Chat.EnterWasPressed ]
+                    { label = Input.labelHidden "Message to send" -- [] (el [centerX] (text "Message to send"))
+                    , onChange = Chat.InputChanged
+                    , placeholder = Just (Input.placeholder [] (text "message"))
+                    , text = model.inputContent
+                    }
+                , Input.button
+                    buttonStyle
+                    { onPress = Just Chat.SaveMessage
+                    , label = el [ centerX ] (text "Save new message")
+                    }
+                ]
 
-            False ->
-                el [] (text "")
+          else
+            el [] (text "")
         , el [] (text <| Firebase.errorPrinter firebase.error)
         ]
