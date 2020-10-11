@@ -403,6 +403,7 @@ view model =
                 [ row [ centerX, spacing 100 ]
                     [ el [] (text (Route.toString model.route))
                     , link [] { label = text "Home", url = "/home" }
+                    , link [] { label = text "Join Game", url = "/join" }
                     , link [] { label = text "NewGame", url = "/poker/newgame" }
                     , link [] { label = text "InGame", url = "/poker/game/test" }
                     ]
