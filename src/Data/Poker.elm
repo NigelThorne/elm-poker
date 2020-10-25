@@ -1,5 +1,6 @@
 module Data.Poker exposing (..)
 
+import Data.Deck exposing (..)
 import Element exposing (..)
 import Element.Events exposing (..)
 import List.Extra exposing (updateAt)
@@ -11,27 +12,62 @@ import Random.Extra
 {-
 
 
-                                                               dddddddd
-   MMMMMMMM               MMMMMMMM                             d::::::d                   lllllll
-   M:::::::M             M:::::::M                             d::::::d                   l:::::l
-   M::::::::M           M::::::::M                             d::::::d                   l:::::l
-   M:::::::::M         M:::::::::M                             d:::::d                    l:::::l
-   M::::::::::M       M::::::::::M   ooooooooooo       ddddddddd:::::d     eeeeeeeeeeee    l::::l
-   M:::::::::::M     M:::::::::::M oo:::::::::::oo   dd::::::::::::::d   ee::::::::::::ee  l::::l
-   M:::::::M::::M   M::::M:::::::Mo:::::::::::::::o d::::::::::::::::d  e::::::eeeee:::::eel::::l
-   M::::::M M::::M M::::M M::::::Mo:::::ooooo:::::od:::::::ddddd:::::d e::::::e     e:::::el::::l
-   M::::::M  M::::M::::M  M::::::Mo::::o     o::::od::::::d    d:::::d e:::::::eeeee::::::el::::l
-   M::::::M   M:::::::M   M::::::Mo::::o     o::::od:::::d     d:::::d e:::::::::::::::::e l::::l
-   M::::::M    M:::::M    M::::::Mo::::o     o::::od:::::d     d:::::d e::::::eeeeeeeeeee  l::::l
-   M::::::M     MMMMM     M::::::Mo::::o     o::::od:::::d     d:::::d e:::::::e           l::::l
-   M::::::M               M::::::Mo:::::ooooo:::::od::::::ddddd::::::dde::::::::e         l::::::l
-   M::::::M               M::::::Mo:::::::::::::::o d:::::::::::::::::d e::::::::eeeeeeee l::::::l
-   M::::::M               M::::::M oo:::::::::::oo   d:::::::::ddd::::d  ee:::::::::::::e l::::::l
-   MMMMMMMM               MMMMMMMM   ooooooooooo      ddddddddd   ddddd    eeeeeeeeeeeeee llllllll
+                                                                  dddddddd
+      MMMMMMMM               MMMMMMMM                             d::::::d                   lllllll
+      M:::::::M             M:::::::M                             d::::::d                   l:::::l
+      M::::::::M           M::::::::M                             d::::::d                   l:::::l
+      M:::::::::M         M:::::::::M                             d:::::d                    l:::::l
+      M::::::::::M       M::::::::::M   ooooooooooo       ddddddddd:::::d     eeeeeeeeeeee    l::::l
+      M:::::::::::M     M:::::::::::M oo:::::::::::oo   dd::::::::::::::d   ee::::::::::::ee  l::::l
+      M:::::::M::::M   M::::M:::::::Mo:::::::::::::::o d::::::::::::::::d  e::::::eeeee:::::eel::::l
+      M::::::M M::::M M::::M M::::::Mo:::::ooooo:::::od:::::::ddddd:::::d e::::::e     e:::::el::::l
+      M::::::M  M::::M::::M  M::::::Mo::::o     o::::od::::::d    d:::::d e:::::::eeeee::::::el::::l
+      M::::::M   M:::::::M   M::::::Mo::::o     o::::od:::::d     d:::::d e:::::::::::::::::e l::::l
+      M::::::M    M:::::M    M::::::Mo::::o     o::::od:::::d     d:::::d e::::::eeeeeeeeeee  l::::l
+      M::::::M     MMMMM     M::::::Mo::::o     o::::od:::::d     d:::::d e:::::::e           l::::l
+      M::::::M               M::::::Mo:::::ooooo:::::od::::::ddddd::::::dde::::::::e         l::::::l
+      M::::::M               M::::::Mo:::::::::::::::o d:::::::::::::::::d e::::::::eeeeeeee l::::::l
+      M::::::M               M::::::M oo:::::::::::oo   d:::::::::ddd::::d  ee:::::::::::::e l::::::l
+      MMMMMMMM               MMMMMMMM   ooooooooooo      ddddddddd   ddddd    eeeeeeeeeeeeee llllllll
+
+
+
+   -- r of n = nPr = n! / (n - r)!
+   -- nCr = n! / r! (n - r)!
+   -- score every possible hand in order
+   ---(5) Straight Flush  AKQJT9876 AKQJT9876 AKQJT9876 AKQJT9876  10*4     === 40
+   ---(4) four of a kind  AKQJT98765432   13*(48)                           === 624
+   ---(5) full house XXX,YY  [AAA]4[KK]6 *12 *13                            === 3744
+   ---(5) flush  (5 of 13) * 4 - (Straight Flushs)   nCr = n! / r! (n - r)! === 5108
+   ---(5) straight A[4]K[4]Q[4]J[4]T[4] * 10  - straight flush              === 10200
+   ---(3) three of a kind -- 13*4*(2 of 48) - (full houses)                 === 54912
+   ---(4) two pair -- 13C2 * 11C1 * 4C2 * 4C2 * 4C1                         === 123552
+   ---(2) pair  ((6 * 13) * (3 of 48)) - two-pair - flush - fullhouse       === 1098240
+   ---            13C1 * 12C3 * 4C2 * 4C1 * 4C1 * 4C1
+   --- high card (5 of 52) - rest                                           === 1302540
+   -- Total : 2,598,960
 
 
 
 
+-}
+{-
+   Decisions?
+   Add players or already in game config? -- add players to game fixed number of possible seats
+
+   Poker
+   * Hand of poker has a dealer, a big and little blind
+   config  => blinds schedule - what blinds start at - when they go up.
+           => number of cards in flop, turn, river
+           => number of starting chips
+           => name of room
+
+   newGame : PokerConfig -> PokerGame
+   startNextHand : PokerGame -> PokerGame
+   dealerDeals : PokerGame -> PokerGame
+   playerBids : PokerGame -> bid -> PokerGame
+   playerFolds : PokerGame -> Player -> PokerGame
+   playerDeals : PokerGame -> Player -> PokerGame
 
 
 
@@ -43,54 +79,14 @@ type alias Game =
     { uid : String
     , players : List Player
     , deck : Deck
-    , community : List Card
-    , steps : List Msg
+    , community : Deck
     }
 
 
 type alias Player =
-    { cards : List Card
+    { cards : Deck
     , name : String
     }
-
-
-type alias Deck =
-    { cards : List Card }
-
-
-type alias Card =
-    { face : Face
-    , suit : Suit
-    , facing : Facing
-    }
-
-
-type Face
-    = Ace
-    | Two
-    | Three
-    | Four
-    | Five
-    | Six
-    | Seven
-    | Eight
-    | Nine
-    | Ten
-    | Jack
-    | Queen
-    | King
-
-
-type Suit
-    = Heart
-    | Club
-    | Diamond
-    | Spade
-
-
-type Facing
-    = FaceUp
-    | FaceDown
 
 
 type Status
@@ -99,18 +95,14 @@ type Status
     | Errored
 
 
-type alias ShuffleKey =
-    List Int
-
-
 {-
 
-    Poker: 
+    Poker:
 
     GameState -- describes a game of Poker
-    * players 
-        each have a seat at the table. 
-        each round 
+    * players
+        each have a seat at the table.
+        each round
     Chips
     Deck
     player
@@ -130,175 +122,21 @@ type alias ShuffleKey =
 
    Actions :-
    * Deal
-   * 
-   * Active player  
+   *
+   * Active player
 
 -}
-
-allSuites : List Suit
-allSuites =
-    [ Heart, Club, Diamond, Spade ]
-
-
-allFaces : List Face
-allFaces =
-    [ Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace ]
-
-
-allCardsInSuit : Suit -> List Card
-allCardsInSuit suit =
-    List.map (\face -> Card face suit FaceDown) allFaces
-
-
-allCardsInDeck : List Card
-allCardsInDeck =
-    List.concat (List.map (\suit -> allCardsInSuit suit) allSuites)
-
-
-newDeck : Deck
-newDeck =
-    Deck allCardsInDeck
-
-
-flipCard : Facing -> Card -> Card
-flipCard facing card =
-    { card | facing = facing }
-
-
-dealCardToCardList : Facing -> ( List Card, Deck ) -> ( List Card, Deck )
-dealCardToCardList facing ( cards, deck ) =
-    let
-        ( card, deck2 ) =
-            removeTopCardFromDeck deck
-    in
-    ( addCard facing card cards, deck2 )
-
-
-dealCardsToCardList : ( List Card, Deck ) -> Facing -> Int -> ( List Card, Deck )
-dealCardsToCardList ( cards, deck ) facing count =
-    case count of
-        0 ->
-            ( cards, deck )
-
-        n ->
-            let
-                ( dealt, remains ) =
-                    dealCardToCardList facing ( cards, deck )
-            in
-            dealCardsToCardList ( dealt, remains ) facing (n - 1)
-
-
-addCard : Facing -> Maybe Card -> List Card -> List Card
-addCard facing card cards =
-    case card of
-        Nothing ->
-            cards
-
-        Just c ->
-            cards ++ [ { c | facing = facing } ]
-
-
-deckSize : Deck -> Int
-deckSize deck =
-    List.length deck.cards
-
-
-removeTopCardFromDeck : Deck -> ( Maybe Card, Deck )
-removeTopCardFromDeck deck =
-    let
-        ( card, rest ) =
-            removeTopCardFromList deck.cards
-    in
-    ( card, { deck | cards = rest } )
-
-
-removeTopCardFromList : List Card -> ( Maybe Card, List Card )
-removeTopCardFromList cards =
-    case cards of
-        [] ->
-            ( Nothing, cards )
-
-        a :: b ->
-            ( Just a, b )
-
-
-removeAnyCardFromCardList : List Card -> Int -> ( Maybe Card, List Card )
-removeAnyCardFromCardList cards index =
-    let
-        offset =
-            modBy (List.length cards) index
-
-        header =
-            List.take offset cards
-
-        ( card, rest ) =
-            removeTopCardFromList (List.drop offset cards)
-    in
-    ( card, header ++ rest )
-
-
-dealCardsToEachHand : Int -> ( List Player, Deck ) -> ( List Player, Deck )
-dealCardsToEachHand count state =
-    repeatedly dealACardToEachHand count state
-
-
-repeatedly : (a -> a) -> Int -> a -> a
-repeatedly fn count x =
-    case count of
-        0 ->
-            x
-
-        n ->
-            repeatedly fn (n - 1) (fn x)
-
-
-dealACardToEachHand : ( List Player, Deck ) -> ( List Player, Deck )
-dealACardToEachHand ( players, fullDeck ) =
-    List.foldl step ( [], fullDeck ) players
-
-
-step : Player -> ( List Player, Deck ) -> ( List Player, Deck )
-step player ( players, deck ) =
-    dealCardToPlayer ( player, deck )
-        |> (\( p, d ) -> ( players ++ [ p ], d ))
-
-
-dealCardToPlayer : ( Player, Deck ) -> ( Player, Deck )
-dealCardToPlayer ( player, deck ) =
-    dealCardToCardList FaceDown ( player.cards, deck )
-        |> (\( c, d ) -> ( { player | cards = c }, d ))
-
-
-shuffleKeyGenerator : Int -> Random.Generator ShuffleKey
-shuffleKeyGenerator size =
-    List.range 1 size
-        |> List.map (\_ -> Random.int 1 size)
-        |> Random.Extra.sequence
-
-
-shuffleDeckWithKeyList : ShuffleKey -> Deck -> Deck
-shuffleDeckWithKeyList keylist deck =
-    { deck | cards = pickCardListUsingKeyList keylist 0 deck.cards }
-
-
-pickCardListUsingKeyList : List Int -> Int -> List Card -> List Card
-pickCardListUsingKeyList keylist offset cards =
-    case keylist of
-        [] ->
-            []
-
-        key :: keysRest ->
-            let
-                ( card, shortList ) =
-                    removeAnyCardFromCardList cards (offset + key)
-            in
-            case card of
-                Nothing ->
-                    cards
-
-                Just c ->
-                    c :: pickCardListUsingKeyList keysRest (offset + key) shortList
-
+-- dealACardToEachPlayer : ( List Player, Deck ) -> ( List Player, Deck )
+-- dealACardToEachPlayer ( players, fullDeck ) =
+--     List.foldl step { players = [], remainingDeck = fullDeck } players
+-- step : Player -> {players: List Player, remainingDeck: Deck} -> { players: List Player, remainingDeck: Deck }
+-- step player {players, deck} =
+--     dealCardToPlayer ( player, deck )
+--         |> (\( p, d ) -> ( players ++ [ p ], d ))
+-- dealCardToPlayer : ( Player, Deck ) -> ( Player, Deck )
+-- dealCardToPlayer ( player, deck ) =
+--     Data.Deck.dealCards 1 FaceDown {to = player.cards, from = deck}
+--         |> (\( c, d ) -> ( { player | cards = c }, d ))
 
 tableCards : Game -> List Card
 tableCards game =
@@ -342,15 +180,9 @@ initHands =
     [ Player [] "Bob", Player [] "Jane", Player [] "Freddy" ]
 
 
-initSteps : List Msg
-initSteps =
-    [ ShuffleDeck, Flop, Turn, River, ResetTable ]
-
-
 initGame : String -> Game
 initGame id =
-    Game id initHands newDeck [] initSteps
-
+    Game id initHands newDeck [] 
 
 
 {-
@@ -384,91 +216,8 @@ initGame id =
 -}
 
 
-type Msg
-    = ShuffleDeck
-    | Betting
-    | Flop
-    | Turn
-    | River
-    | PayWinnings
-    | ShuffleDeckUsingRandomKey ShuffleKey
-    | DoStep
-    | Noop
-    | ResetTable
-    | FlipCard Card
-    | UserHoveredButton Int
-    | UserUnhoveredButton Int
 
 
-doStep game =
-    update (List.head game.steps |> Maybe.withDefault Noop) { game | steps = List.tail game.steps |> Maybe.withDefault [] }
-
-
-update : Msg -> Game -> ( Game, Cmd Msg )
-update msg game =
-    case msg of
-        DoStep ->
-            game |> doStep
-
-        ResetTable ->
-            ( { game | deck = newDeck, players = initHands, community = [], steps = initSteps }
-            , Cmd.none
-            )
-
-        Flop ->
-            ( game |> flop
-            , Cmd.none
-            )
-
-        Turn ->
-            ( game |> turn
-            , Cmd.none
-            )
-
-        River ->
-            ( game |> river
-            , Cmd.none
-            )
-
-        ShuffleDeck ->
-            ( game
-            , Random.generate ShuffleDeckUsingRandomKey (shuffleKeyGenerator (deckSize game.deck))
-            )
-
-        ShuffleDeckUsingRandomKey keylist ->
-            ( { game | deck = shuffleDeckWithKeyList keylist game.deck } |> dealPlayerCards
-            , Cmd.none
-            )
-
-        Betting ->
-            ( game |> river
-            , Cmd.none
-            )
-
-        PayWinnings ->
-            ( game |> river
-            , Cmd.none
-            )
-
-        Noop ->
-            ( game
-            , Cmd.none
-            )
-
-        FlipCard _ ->
-            ( game
-            , Cmd.none
-            )
-
-        UserHoveredButton index ->
-            ( { game | players = flipHand index FaceUp game.players }
-            , Cmd.none
-            )
-
-        UserUnhoveredButton index ->
-            ( { game | players = flipHand index FaceDown game.players }
-            , Cmd.none
-            )
 
 
 flipHand : Int -> Facing -> List Player -> List Player
@@ -483,26 +232,26 @@ flipCards facing cards =
 
 flop : Game -> Game
 flop game =
-    dealCardsToCommunity 3 game
+    times 3 dealCommunityCard game
 
 
-dealCardsToCommunity : Int -> Game -> Game
-dealCardsToCommunity count game =
+dealCommunityCard : Game -> Game
+dealCommunityCard game =
     let
         ( cards, remains ) =
-            dealCardsToCardList ( game.community, game.deck ) FaceUp count
+            deal (addCard FaceUp) game.community game.deck
     in
     { game | deck = remains, community = cards }
 
 
 turn : Game -> Game
 turn game =
-    dealCardsToCommunity 1 game
+    dealCommunityCard game
 
 
 river : Game -> Game
 river game =
-    dealCardsToCommunity 1 game
+    dealCommunityCard game
 
 
 dealPlayerCards : Game -> Game
@@ -514,28 +263,28 @@ dealPlayerCards game =
     { game | players = players, deck = deck }
 
 
+dealCardsToEachHand : Int -> ( List Player, Deck ) -> ( List Player, Deck )
+dealCardsToEachHand count state =
+    times count dealCardToEachHand state
+
+
 dealCardToEachHand : ( List Player, Deck ) -> ( List Player, Deck )
 dealCardToEachHand ( players, deck ) =
-    case players of
-        [] ->
-            ( players, deck )
+    dealToAll addCardToPlayer players deck 
 
-        a :: b ->
-            let
-                ( h, d ) =
-                    dealCardToHand ( a, deck )
-            in
-            let
-                ( hs, d2 ) =
-                    dealCardToEachHand ( b, d )
-            in
-            ( h :: hs, d2 )
+
+
+addCardToPlayer : Maybe Card -> Player -> Player
+addCardToPlayer card player =
+    (addCard FaceDown card player.cards) |> 
+        \(d) -> {player | cards = d} 
+
 
 
 dealCardToHand : ( Player, Deck ) -> ( Player, Deck )
 dealCardToHand ( hand, deck ) =
     let
         ( h, _ ) =
-            dealCardToCardList FaceDown ( hand.cards, deck )
+            deal (addCard FaceDown) hand.cards deck
     in
     ( { hand | cards = h }, deck )

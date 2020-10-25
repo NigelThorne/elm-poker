@@ -36,6 +36,11 @@ onEnter msg =
             )
         )
 
+-- onMouseOver msg =
+--   Dom.Element.addAttribute
+--     ( "mouseover"
+--       |> Dom.Event.action msg
+--     )
 
 hover =
     Element.rgb255 0x28 0x41 0x5B

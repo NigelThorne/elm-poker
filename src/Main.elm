@@ -15,43 +15,26 @@ module Main exposing (main)
 -- ✅ card colors, table color, card backings
 -- ✅ name players
 -- ✅ messages in order
--- url ->  join room
--- join room -> url
+-- ✅ url ->  join room
+-- load gamestate by room name
+-- ✅ join room -> url
 -- firebase -- share deck
 -- detect winner
 -- bet money
 -- show odds
 -- show scoring card
 -- union type with one constructor for card and deck.
--- one button does all steps.. dealer presses button...
--- show odds
---
+-- ✅ one button does all steps.. 
+-- only dealer presses button...
+-- 
 -- Dependencies:
 --   elm install elm/random elm/random-extension
 --
--- r of n = nPr = n! / (n - r)!
--- nCr = n! / r! (n - r)!
--- score every possible hand in order
----(5) Straight Flush  AKQJT9876 AKQJT9876 AKQJT9876 AKQJT9876  10*4     === 40
----(4) four of a kind  AKQJT98765432   13*(48)                           === 624
----(5) full house XXX,YY  [AAA]4[KK]6 *12 *13                            === 3744
----(5) flush  (5 of 13) * 4 - (Straight Flushs)   nCr = n! / r! (n - r)! === 5108
----(5) straight A[4]K[4]Q[4]J[4]T[4] * 10  - straight flush              === 10200
----(3) three of a kind -- 13*4*(2 of 48) - (full houses)                 === 54912
----(4) two pair -- 13C2 * 11C1 * 4C2 * 4C2 * 4C1                         === 123552
----(2) pair  ((6 * 13) * (3 of 48)) - two-pair - flush - fullhouse       === 1098240
----            13C1 * 12C3 * 4C2 * 4C1 * 4C1 * 4C1
---- high card (5 of 52) - rest                                           === 1302540
--- Total : 2,598,960
--- import Html.Events
---import Element.Background as Background
---import Element.Border as Border
---import Element.Font as Font
 
 import Browser
 import Browser.Navigation as Nav
 import Data.Chat as Chat
-import Data.Firebase as Firebase
+import Data.Firebase as Firebase exposing (FirebaseAction(..) )
 import Data.Poker as Poker
 import Element exposing (..)
 import Element.Background as Background
@@ -60,11 +43,14 @@ import Element.Events exposing (..)
 import Element.Input as Input
 import Page.GameDetails exposing (..)
 import Page.JoinGame as JoinGamePage exposing (State, viewLobby)
+import Page.PokerRoom as PokerRoomPage
 import Ports exposing (..)
 import Route
 import Styles exposing (..)
 import Url
-import View.PokerTable
+import View.Chat
+import Json.Encode
+
 
 
 main : Program () Model Msg
@@ -77,8 +63,6 @@ main =
         , onUrlChange = UrlChanged
         , onUrlRequest = LinkClicked
         }
-
-
 
 {-
 
@@ -118,14 +102,9 @@ type alias Model =
 
 type PageState
     = HomeState
-    | PokerGameState GameState
+    | PokerGameState PokerRoomPage.GameState
     | JoinGameState JoinGamePage.State
 
-
-type alias GameState =
-    { game : Poker.Game
-    , chat : Chat.Model
-    }
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -198,26 +177,30 @@ initPageState route =
 
 
 -}
--- onMouseOver msg =
---   Dom.Element.addAttribute
---     ( "mouseover"
---       |> Dom.Event.action msg
---     )
 
 
 type Msg
-    = GotPokerMsg Poker.Msg
-    | ChatMsg Chat.Msg
+    = UrlChanged Url.Url
     | Firebase Firebase.Msg
+    | GotPokerMsg PokerRoomPage.Msg
+    | ChatMsg Chat.Msg
     | JoinGameMsg JoinGamePage.Msg
     | LeaveRoom
     | LinkClicked Browser.UrlRequest
-    | UrlChanged Url.Url
+    | EnterRoomMsg
+    | GotPokerRoomInfoMsg Json.Encode.Value 
+    
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        EnterRoomMsg -> 
+            (model, enterPokerRoom("a5o1Nkfbb4WiHhVN4znw") )
+
+        GotPokerRoomInfoMsg json -> 
+            (model, Cmd.none)
+
         LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
@@ -234,13 +217,9 @@ update msg model =
 
         ChatMsg chatMsg ->
             case model.state of
-                PokerGameState pstate ->
-                    let
-                        ( chat, firebase, cmd ) =
-                            Chat.update chatMsg pstate.chat model.firebase
-                    in
-                    ( { model | state = PokerGameState { pstate | chat = chat }, firebase = firebase }, Cmd.map ChatMsg cmd )
-
+                -- PokerGameState pstate ->
+                --     PokerRoomPage.update chatMsg model.firebase pstate 
+                --         |> \(g,f,m) -> updatePageState PokerGameState ChatMsg {model| firebase = f} (g,m)
                 _ ->
                     ( model, Cmd.none )
 
@@ -254,7 +233,8 @@ update msg model =
         JoinGameMsg jmsg ->
             case model.state of
                 JoinGameState jstate ->
-                    updatePageState JoinGameState JoinGameMsg model <| JoinGamePage.update jstate jmsg
+                    JoinGamePage.update jstate jmsg |> 
+                        updatePageState JoinGameState JoinGameMsg model 
 
                 _ ->
                     ( model, Cmd.none )
@@ -281,16 +261,16 @@ changeRouteTo maybeRoute model =
     ( { model | state = initPageState maybeRoute, route = maybeRoute }, Cmd.none )
 
 
-updateModelFromPokerMsg : Poker.Msg -> Model -> ( Model, Cmd Msg )
+updateModelFromPokerMsg : PokerRoomPage.Msg -> Model -> ( Model, Cmd Msg )
 updateModelFromPokerMsg msg model =
     case model.state of
         PokerGameState gameState ->
             let
-                ( nextGame, cmd ) =
-                    Poker.update msg gameState.game
+                ( nextGame, fb,  cmd ) =
+                    PokerRoomPage.update msg model.firebase gameState.game
             in
-            ( { model | state = PokerGameState { gameState | game = nextGame } }, Cmd.map GotPokerMsg cmd )
-
+            ( { model | state = PokerGameState { gameState | game = nextGame }, firebase = fb }, Cmd.map GotPokerMsg cmd )
+        
         _ ->
             ( model, Cmd.none )
 
@@ -337,6 +317,7 @@ subscriptions model =
         [ Sub.map ChatMsg (receiveMessages Chat.messagesReceived)
         , Sub.map Firebase (signInInfo Firebase.signInInfo)
         , Sub.map Firebase (signInError Firebase.signInError)
+        , pokerRoomInfo GotPokerRoomInfoMsg
         ]
 
 
@@ -386,6 +367,7 @@ view model =
                     , link [] { label = text "Join Game", url = "/join" }
                     , link [] { label = text "NewGame", url = "/poker/newgame" }
                     , link [] { label = text "InGame", url = "/poker/game/test" }
+                    , Input.button [] {onPress = Just EnterRoomMsg , label = text "enterRoom"}
                     ]
                 , viewPage model
                 ]
@@ -411,47 +393,37 @@ viewPickUsername model =
     text "welcome"
 
 
-viewInGame : GameState -> Firebase.Model -> Element Msg
+
+viewInGame : PokerRoomPage.GameState -> Firebase.Model -> Element Msg
 viewInGame model firebase =
+
     row [ height fill, width fill ]
         [ controlPanel model firebase
-        , playingArea model.game
+        , Element.map GotPokerMsg (PokerRoomPage.playingArea model.game)
         ]
 
 
-controlPanel : GameState -> Firebase.Model -> Element Msg
+controlPanel : PokerRoomPage.GameState -> Firebase.Model -> Element Msg
 controlPanel model firebase =
     column
         [ spacing 20
         , padding 20
         , height fill
         ]
-        [ el [ centerX ] (viewSessionControls firebase)
-        , el [ centerX ] (Element.map ChatMsg (viewChatWindow model.chat firebase))
-        , el [ centerX, alignBottom, Border.width 1, padding 10, Border.rounded 8 ] (Input.button [] { onPress = Just LeaveRoom, label = text "Leave Game" })
+        [ el [ centerX ] 
+                (viewSessionControls firebase)
+        , el [ centerX ] 
+                (Element.map ChatMsg (View.Chat.viewChatWindow model.chat))
+        , el [ centerX, alignBottom, Border.width 1, padding 10, Border.rounded 8 ] 
+                (Input.button [] { onPress = Just LeaveRoom, label = text "Leave Game" })
         ]
+          
+        -- if Firebase.isLoggedIn firebase then
+        -- else
+        --     el [] (text "")
+        -- , el [] (text <| Firebase.errorPrinter firebase.error)
 
 
-playingArea : Poker.Game -> Element Msg
-playingArea game =
-    column
-        [ height fill
-        , width <| fillPortion 5
-        ]
-        [ -- if Firebase.isSignedIn model.firebase then
-          Element.map GotPokerMsg (View.PokerTable.viewTable game)
-        , el
-            [ width fill
-            , height fill
-            , Background.color <| rgb255 0 123 23
-            ]
-            Element.none
-        , el
-            [ width fill
-            , Background.color <| rgb255 123 123 123
-            ]
-            (Element.map GotPokerMsg View.PokerTable.pokerControls)
-        ]
 
 
 viewSessionControls : Firebase.Model -> Element Msg
@@ -485,49 +457,10 @@ viewFirebaseUserControls model =
 
 
 
--- CHAT
+-- Poker
 
+enterPokerRoom : String -> Cmd msg
+enterPokerRoom roomName =
+  firebase <| toRecord (OnSnapshot {path = "/games/"++ roomName ++"", receivePort = "pokerRoomInfo" } )
 
-viewChatWindow : Chat.Model -> Firebase.Model -> Element Chat.Msg
-viewChatWindow model firebase =
-    column
-        [ width <| px 300
-        , spacing 10
-        , centerX
-        ]
-        [ column [ centerX ]
-            [ column
-                [ spacing 10
-                , Border.solid
-                , Border.width 1
-                , padding 10
-                , width <| px 300
-                , height <| px 600
-                ]
-                [ el [ centerX ] (text "Messages:")
-                , column [ scrollbars, height fill, width fill ] <|
-                    List.map
-                        (\m -> paragraph [] [ text m.text ])
-                        model.messages
-                ]
-            ]
-        , if Firebase.isLoggedIn firebase then
-            column [ spacing 10, centerX, width <| px 300 ]
-                [ Input.text
-                    [ onEnter Chat.EnterWasPressed ]
-                    { label = Input.labelHidden "Message to send" -- [] (el [centerX] (text "Message to send"))
-                    , onChange = Chat.InputChanged
-                    , placeholder = Just (Input.placeholder [] (text "message"))
-                    , text = model.inputContent
-                    }
-                , Input.button
-                    buttonStyle
-                    { onPress = Just Chat.SaveMessage
-                    , label = el [ centerX ] (text "Save new message")
-                    }
-                ]
-
-          else
-            el [] (text "")
-        , el [] (text <| Firebase.errorPrinter firebase.error)
-        ]
+--Json.Decode.decodeValue logInErrorDecoder >> LoggedInError

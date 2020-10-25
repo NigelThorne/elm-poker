@@ -50,46 +50,52 @@ app.ports.signIn.subscribe(() => {
     });
 });
 
+
+
 app.ports.signOut.subscribe(() => {
   console.log("LogOut called");
   firebase.auth().signOut();
 });
 
 //  Observer on user info
-firebase.auth().onAuthStateChanged(user => {
+firebase.auth().onAuthStateChanged((user) => {
   console.log("called");
   if (user) {
     user
       .getIdToken()
-      .then(idToken => {
+      .then((idToken) => {
         app.ports.signInInfo.send({
           token: idToken,
           email: user.email,
-          uid: user.uid
+          uid: user.uid,
         });
       })
-      .catch(error => {
+      .catch((error) => {
         console.log("Error when retrieving cached user");
         console.log(error);
       });
 
-    // Set up listened on new messages
-    db.collection(`users/${user.uid}/messages`).onSnapshot(docs => {
-      console.log("Received new snapshot");
-      const messages = [];
-
-      docs.forEach(doc => {
-        if (doc.data().content) {
-          messages.push(doc.data().content);
-        }
-      });
-
-      app.ports.receiveMessages.send({
-        messages: messages
-      });
-    });
+    listenForMessages();
   }
 });
+
+const listenForMessages = () => {
+  // Set up listened on new messages
+  db.collection(`users/${user.uid}/messages`).onSnapshot((docs) => {
+    console.log("Received new snapshot");
+    const messages = [];
+
+    docs.forEach((doc) => {
+      if (doc.data().content) {
+        messages.push(doc.data().content);
+      }
+    });
+
+    app.ports.receiveMessages.send({
+      messages: messages,
+    });
+  });
+};
 
 app.ports.saveMessage.subscribe(data => {
   console.log(`saving message to database : ${data.content}`);
@@ -106,55 +112,67 @@ app.ports.saveMessage.subscribe(data => {
     });
 });
 
-// app.ports.saveMessage.subscribe((data) => {
-//   console.log(`saving message to database : ${data.content}`);
+var unsubHandlerStore = {};
 
-//   db.collection(`users/${data.uid}/messages`)
-//     .add({
-//       content: { text: data.content, timestamp: Date.now() },
-//     })
-//     .catch((error) => {
-//       app.ports.signInError.send({
-//         code: error.code,
-//         message: error.message,
-//       });
-//     });
-// });
+var ticksSinceEpoc = (date) =>
+  date.getTime() * 10000 +
+  621355968000000000 -
+  date.getTimezoneOffset() * 600000000;
+var ticksNow = () => ticksSinceEpoc(new Date());
 
-// app.ports.signIn.subscribe(() => {
-//   firebase
-//     .auth()
-//     .signInWithPopup(provider)
-//     .then(result => {
-//       result.user.getIdToken().then(idToken => {
-//         app.ports.signInInfo.send({
-//           token: idToken,
-//           email: result.user.email,
-//           uid: result.user.uid
-//         });
-//       });
-//     })
-//     .catch(error => {
-//       app.ports.signInError.send({
-//         code: error.code,
-//         message: error.message
-//       });
-//     });
-// });
+app.ports.firebase.subscribe((data) => {
+  switch (data.command) {
+    case "OnSnapshot": {
+      var unsubId = ticksNow();
+      var unsub = db.collection(data.path).onSnapshot((docs) => {
+        app.ports[data.receivePort].send({
+          ...docs,
+          unsubId,
+        });
+      });
+      unsubHandlerStore[unsubId] = unsub;
+      break;
+    }
+    case "read": {
+      var unsubId = ticksNow();
+      var unsub = db
+        .doc(data.path)
+        .get()
+        .then((doc) => {
+            console.log(app.ports)
+            console.log(data)
+            app.ports[data.receivePort].send({
+              doc,
+              unsubId,
+            });
+          });
+      unsubHandlerStore[unsubId] = unsub;
+      break;
+    }
+    case "unsub": {
+      const unsub = unsubHandlerStore[data.unsubId];
+      if (unsub != null) {
+        unsub();
+        delete unsubHandlerStore[data.unsubId];
+      }
+      break;
+    }
+    case "add": {
+      db.collection(data.path)
+        .add({
+          content: { ...data.message, timestamp: Date.now() },
+        })
+        .catch((error) => {
+          console.log(`ERROR: firebase error : ${error.code} ${error.message}`);
 
-// app.ports.saveGame.subscribe((data) => {
-//   console.log(`saving game to database : ${data.content}`);
-
-//   db.collection(`users/${data.uid}/game`)
-//     .add({
-//       content: { text: data.content, timestamp: Date.now() },
-//     })
-//     .catch((error) => {
-//       app.ports.signInError.send({
-//         code: error.code,
-//         message: error.message,
-//       });
-//     });
-// });
+          app.ports[data.errorPort].send({
+            code: error.code,
+            message: error.message,
+          });
+        });
+      break;
+    }
+  }
+});
 
 registerServiceWorker();

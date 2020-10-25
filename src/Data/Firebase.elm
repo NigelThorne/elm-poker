@@ -1,4 +1,4 @@
-module Data.Firebase exposing (Model, Msg(..), isLoggedIn, signInError, errorPrinter, init, isSignedIn, messageEncoder, setError, signInInfo, update)
+module Data.Firebase exposing (Model, Msg(..), FirebaseAction(..), isLoggedIn, signInError, errorPrinter, init, isSignedIn, messageEncoder, setError, signInInfo, update)
 
 import Json.Decode
 import Json.Decode.Pipeline
@@ -141,3 +141,21 @@ isLoggedIn : Model -> Bool
 isLoggedIn firebase = case firebase.userData of
   Just _ -> True
   _ -> False
+
+type FirebaseAction
+    = OnSnapshot { path : String, receivePort : String }
+    | Unsub { unsubId : String }
+    | Add { path : String, message : String, errorPort : String }
+
+
+-- firebaseDataDecoder : Json.Decode.Decoder FirebaseData
+-- firebaseDataDecoder =
+--     Json.Decode.succeed FirebaseData
+--         |> Json.Decode.Pipeline.required "token" Json.Decode.string
+--         |> Json.Decode.Pipeline.required "email" Json.Decode.string
+--         |> Json.Decode.Pipeline.required "uid" Json.Decode.string
+
+-- signInInfoz : Json.Encode.Value -> Msg
+-- signInInfoz =
+--     Json.Decode.decodeValue firebaseDataDecoder >> LoggedInData
+
