@@ -102,7 +102,7 @@ type alias Model =
 
 type PageState
     = HomeState
-    | PokerGameState PokerRoomPage.GameState
+    | PokerRoomState PokerRoomPage.GameState
     | JoinGameState JoinGamePage.State
 
 
@@ -129,10 +129,7 @@ initPageState route =
             HomeState
 
         Just (Route.InGame roomName) ->
-            PokerGameState
-                { game = Poker.initGame roomName
-                , chat = Chat.init { saveMessage = saveMessage }
-                }
+            PokerRoomState (PokerRoomPage.initGameState roomName saveMessage)
 
         Just Route.JoinGame ->
             JoinGameState
@@ -264,12 +261,12 @@ changeRouteTo maybeRoute model =
 updateModelFromPokerMsg : PokerRoomPage.Msg -> Model -> ( Model, Cmd Msg )
 updateModelFromPokerMsg msg model =
     case model.state of
-        PokerGameState gameState ->
+        PokerRoomState gameState ->
             let
                 ( nextGame, fb,  cmd ) =
-                    PokerRoomPage.update msg model.firebase gameState.game
+                    PokerRoomPage.update msg model.firebase gameState
             in
-            ( { model | state = PokerGameState { gameState | game = nextGame }, firebase = fb }, Cmd.map GotPokerMsg cmd )
+                ( { model | state = PokerRoomState nextGame, firebase = fb }, Cmd.map GotPokerMsg cmd )
         
         _ ->
             ( model, Cmd.none )
@@ -365,8 +362,8 @@ view model =
                     [ el [] (text (Route.toString model.route))
                     , link [] { label = text "Home", url = "/home" }
                     , link [] { label = text "Join Game", url = "/join" }
-                    , link [] { label = text "NewGame", url = "/poker/newgame" }
-                    , link [] { label = text "InGame", url = "/poker/game/test" }
+                    , link [] { label = text "NewGame", url = "/newgame" }
+                    , link [] { label = text "InGame", url = "/game/test" }
                     , Input.button [] {onPress = Just EnterRoomMsg , label = text "enterRoom"}
                     ]
                 , viewPage model
@@ -381,7 +378,7 @@ viewPage model =
         HomeState ->
             viewGameDetailsPage
 
-        PokerGameState gameState ->
+        PokerRoomState gameState ->
             viewInGame gameState model.firebase
 
         JoinGameState joinState ->
@@ -396,14 +393,16 @@ viewPickUsername model =
 
 viewInGame : PokerRoomPage.GameState -> Firebase.Model -> Element Msg
 viewInGame model firebase =
+    case model of 
+        PokerRoomPage.Loading gameId -> row [ height fill, width fill ] [text ("loading " ++ gameId)]
+        PokerRoomPage.Loaded gameState -> 
+            row [ height fill, width fill ]
+                [ controlPanel gameState.chat firebase
+                , Element.map GotPokerMsg (PokerRoomPage.playingArea gameState.game)
+                ]
 
-    row [ height fill, width fill ]
-        [ controlPanel model firebase
-        , Element.map GotPokerMsg (PokerRoomPage.playingArea model.game)
-        ]
 
-
-controlPanel : PokerRoomPage.GameState -> Firebase.Model -> Element Msg
+controlPanel : Chat.Model -> Firebase.Model -> Element Msg
 controlPanel model firebase =
     column
         [ spacing 20
@@ -413,7 +412,7 @@ controlPanel model firebase =
         [ el [ centerX ] 
                 (viewSessionControls firebase)
         , el [ centerX ] 
-                (Element.map ChatMsg (View.Chat.viewChatWindow model.chat))
+                (Element.map ChatMsg (View.Chat.viewChatWindow model))
         , el [ centerX, alignBottom, Border.width 1, padding 10, Border.rounded 8 ] 
                 (Input.button [] { onPress = Just LeaveRoom, label = text "Leave Game" })
         ]

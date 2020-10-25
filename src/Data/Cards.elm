@@ -1,4 +1,4 @@
-module Data.Deck exposing (Deck, Card, ShuffleKey, Facing(..), toString, cardColor, dealToAll, addCard, times, deal, emptyDeck, shuffleKeyGenerator, shuffleDeck, flipCards, newDeck, deckSize, flipCard)
+module Data.Cards exposing (Cards, Card, ShuffleKey, Facing(..), toString, cardColor, dealToAll, addCard, times, deal, noCards, shuffleKeyGenerator, shuffleDeck, flipCards, newDeck, deckSize, flipCard)
 
 import List.Extra exposing (updateAt)
 import Random
@@ -6,7 +6,7 @@ import Random.Extra
 import Element exposing (Color)
 import Element exposing (rgb255)
 
-type alias Deck =
+type alias Cards =
     List Card
 
 type alias Card =
@@ -46,12 +46,12 @@ type Facing
 type alias ShuffleKey =
     List Int
 
-newDeck : Deck
+newDeck : Cards
 newDeck =
     allCardsInDeck
 
-emptyDeck : Deck
-emptyDeck = 
+noCards : Cards
+noCards = 
   []
 
 toString : Card -> String
@@ -141,11 +141,11 @@ allFaces =
     [ Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace ]
 
 
-allCardsInSuit : Suit -> Deck
+allCardsInSuit : Suit -> Cards
 allCardsInSuit suit =
     List.map (\face -> Card face suit FaceDown) allFaces
 
-allCardsInDeck : Deck
+allCardsInDeck : Cards
 allCardsInDeck =
     List.concat (List.map (\suit -> allCardsInSuit suit) allSuites)
 
@@ -155,7 +155,7 @@ flipCard facing card =
 
 
 
-addCard : Facing -> Maybe Card -> Deck -> Deck
+addCard : Facing -> Maybe Card -> Cards -> Cards
 addCard f card cards =
     case card of
         Nothing ->
@@ -165,13 +165,13 @@ addCard f card cards =
             cards ++ [ { c | facing = f } ]
 
 
-deckSize : Deck -> Int
+deckSize : Cards -> Int
 deckSize deck =
     List.length deck
 
 
 
-removeTopCard : Deck -> ( Maybe Card, Deck )
+removeTopCard : Cards -> ( Maybe Card, Cards )
 removeTopCard cards =
     case cards of
         [] ->
@@ -180,7 +180,7 @@ removeTopCard cards =
         a :: b ->
             ( Just a, b )
 
-removeAnyCard : Int -> Deck -> ( Maybe Card, Deck )
+removeAnyCard : Int -> Cards -> ( Maybe Card, Cards )
 removeAnyCard index cards =
     let
         offset =
@@ -201,12 +201,12 @@ shuffleKeyGenerator size =
         |> Random.Extra.sequence
 
 
-shuffleDeck : ShuffleKey -> Deck -> Deck
+shuffleDeck : ShuffleKey -> Cards -> Cards
 shuffleDeck keylist deck =
     pickCardsUsingKeyList keylist 0 deck
 
 
-pickCardsUsingKeyList : List Int -> Int -> Deck -> Deck
+pickCardsUsingKeyList : List Int -> Int -> Cards -> Cards
 pickCardsUsingKeyList keylist offset cards =
     case keylist of
         [] ->
@@ -225,7 +225,7 @@ pickCardsUsingKeyList keylist offset cards =
                     c :: pickCardsUsingKeyList keysRest (offset + key) shortList
 
 
-flipCards : Facing -> Deck -> Deck
+flipCards : Facing -> Cards -> Cards
 flipCards facing cards =
     List.map (\c -> flipCard facing c) cards
 
@@ -249,7 +249,7 @@ times count fn x =
             times (n - 1) fn (fn x)
 
 
-dealToAll : (Maybe Card -> a -> a) -> List a -> Deck -> (List a, Deck)
+dealToAll : (Maybe Card -> a -> a) -> List a -> Cards -> (List a, Cards)
 dealToAll add targets deck  = 
     case (deck, targets) of
         (_, []) -> (targets, deck)
@@ -259,10 +259,10 @@ dealToAll add targets deck  =
                 \(tdone, ddone) -> ((add (Just c) t)::tdone, ddone) 
 
 
-deal : (Maybe Card -> a -> a) -> a -> Deck -> (a, Deck)
+deal : (Maybe Card -> a -> a) -> a -> Cards -> (a, Cards)
 deal add target deck = 
     ((add (List.head deck) target), 
-        List.tail deck |> Maybe.withDefault(emptyDeck)) 
+        List.tail deck |> Maybe.withDefault(noCards)) 
 
 cardColor : Card -> Color
 cardColor card =

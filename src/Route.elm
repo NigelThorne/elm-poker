@@ -24,6 +24,6 @@ routeParser =
         [ Url.Parser.map Home top
         , Url.Parser.map Home (s "home")
         , Url.Parser.map JoinGame (s "join")
-        , Url.Parser.map NewGame (s "poker" </> s "newgame")
-        , Url.Parser.map InGame (s "poker" </> s "game" </> string)
+        , Url.Parser.map NewGame (s "newgame")
+        , Url.Parser.map InGame (s "game" </> string)
         ]

@@ -1,6 +1,6 @@
 module Data.Poker exposing (..)
 
-import Data.Deck exposing (..)
+import Data.Cards exposing (..)
 import Element exposing (..)
 import Element.Events exposing (..)
 import List.Extra exposing (updateAt)
@@ -69,30 +69,55 @@ import Random.Extra
    playerFolds : PokerGame -> Player -> PokerGame
    playerDeals : PokerGame -> Player -> PokerGame
 
-
-
-
 -}
 
 
 type alias Game =
-    { uid : String
+    { deck : Cards
+    , community : Cards
     , players : List Player
-    , deck : Deck
-    , community : Deck
+    , pot : Chips
     }
 
+type alias GameId =
+    Int
 
 type alias Player =
-    { cards : Deck
+    { hand : Cards
+    , bank : Chips
     , name : String
+    , stake : Int
     }
 
+type alias Chips = 
+    Int
 
-type Status
-    = Loading
-    | Loaded Deck
-    | Errored
+noChips : Chips
+noChips = 0
+noCards : Cards
+noCards = []
+
+
+initGame : Cards -> List String -> Chips -> Game
+initGame deck playerNames startingChips =
+    { deck = deck
+    , community = noCards
+    , players = (initPlayers playerNames startingChips)
+    , pot = noChips
+    }
+
+initPlayers : List String -> Chips -> List Player
+initPlayers names startingChips =
+    names |> 
+        List.map (\name -> initPlayer name startingChips)
+
+initPlayer : String -> Chips -> Player
+initPlayer name chips = 
+    { name = name
+    , hand = noCards
+    , bank = chips
+    , stake = noChips
+    }
 
 
 {-
@@ -175,16 +200,6 @@ tableCards game =
 -}
 
 
-initHands : List Player
-initHands =
-    [ Player [] "Bob", Player [] "Jane", Player [] "Freddy" ]
-
-
-initGame : String -> Game
-initGame id =
-    Game id initHands newDeck [] 
-
-
 {-
 
 
@@ -222,7 +237,7 @@ initGame id =
 
 flipHand : Int -> Facing -> List Player -> List Player
 flipHand index facing players =
-    updateAt index (\p -> { p | cards = flipCards facing p.cards }) players
+    updateAt index (\p -> { p | hand = (flipCards facing p.hand) }) players
 
 
 flipCards : Facing -> List Card -> List Card
@@ -256,35 +271,34 @@ river game =
 
 dealPlayerCards : Game -> Game
 dealPlayerCards game =
-    let
-        ( players, deck ) =
-            dealCardsToEachHand 2 ( game.players, game.deck )
-    in
-    { game | players = players, deck = deck }
+    ( game.players, game.deck ) |> (dealCardsToEachHand 2) |> \( players, deck ) -> { game | players = players, deck = deck }
 
 
-dealCardsToEachHand : Int -> ( List Player, Deck ) -> ( List Player, Deck )
+dealCardsToEachHand : Int -> ( List Player, Cards ) -> ( List Player, Cards )
 dealCardsToEachHand count state =
     times count dealCardToEachHand state
 
 
-dealCardToEachHand : ( List Player, Deck ) -> ( List Player, Deck )
+dealCardToEachHand : ( List Player, Cards ) -> ( List Player, Cards )
 dealCardToEachHand ( players, deck ) =
     dealToAll addCardToPlayer players deck 
 
 
+clearTable : Game -> Game
+clearTable game = 
+    { game | community = noCards , pot = noChips}
 
 addCardToPlayer : Maybe Card -> Player -> Player
 addCardToPlayer card player =
-    (addCard FaceDown card player.cards) |> 
-        \(d) -> {player | cards = d} 
+    (addCard FaceDown card player.hand) |> 
+        \(d) -> {player | hand = d} 
 
 
 
-dealCardToHand : ( Player, Deck ) -> ( Player, Deck )
-dealCardToHand ( hand, deck ) =
+dealCardToHand : ( Player, Cards ) -> ( Player, Cards )
+dealCardToHand ( player, deck ) =
     let
         ( h, _ ) =
-            deal (addCard FaceDown) hand.cards deck
+            deal (addCard FaceDown) player.hand deck
     in
-    ( { hand | cards = h }, deck )
+    ( { player | hand = h }, deck )

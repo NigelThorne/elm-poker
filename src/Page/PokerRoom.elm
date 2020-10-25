@@ -2,6 +2,7 @@ module Page.PokerRoom exposing (..)
 
 
 
+import Random
 import Data.Poker as Poker
 import Data.Chat as Chat
 import Data.Firebase as Firebase
@@ -14,13 +15,8 @@ import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import Styles exposing (..)
-import Data.Deck as Deck exposing (Card, ShuffleKey)
-import Data.Deck exposing (shuffleKeyGenerator)
-import Random
-import Data.Deck exposing (shuffleDeck)
-import Data.Deck exposing (deckSize)
-import Data.Deck exposing (Facing(..))
-import Data.Deck exposing (newDeck)
+import Data.Cards as Cards exposing (Card, ShuffleKey, shuffleKeyGenerator, shuffleDeck, deckSize, Facing(..), newDeck)
+import Json.Encode
 
 
       -- let
@@ -30,9 +26,13 @@ import Data.Deck exposing (newDeck)
       -- ( { model | state = PokerGameState { pstate | chat = chat }, firebase = firebase }, Cmd.map ChatMsg cmd )
 
 
-type alias GameState
-      = LoadedGameState
---      | Loaded LoadedGameState
+type GameState
+      = Loading String
+      | Loaded LoadedGameState
+
+initGameState: String -> (Json.Encode.Value -> Cmd msg) -> GameState
+initGameState roomName chatPort = 
+    Loading roomName
 
 type alias LoadedGameState =
       { game : Poker.Game
@@ -54,6 +54,7 @@ type Msg
     | FlipCard Card
     | UserHoveredButton Int
     | UserUnhoveredButton Int
+    -- GotLoaded
 
 -- doStep : { a | steps : List Msg } -> ( Game, Cmd Msg )
 -- doStep game =
@@ -62,14 +63,20 @@ type Msg
 --         { game | steps = (List.tail game.steps) |> Maybe.withDefault [] }
 
 
-update : Msg -> Firebase.Model -> Game -> ( Game, Firebase.Model, Cmd Msg )
-update msg firebase game =
+update : Msg -> Firebase.Model -> GameState -> ( GameState, Firebase.Model, Cmd Msg )
+update msg firebase gameState =
+    case gameState of
+        Loaded lgs -> updateLoaded msg firebase lgs.game  |> \(gs, fb, cmd) -> (Loaded {lgs | game=gs}, fb, cmd) 
+        _ -> (gameState, firebase, Cmd.none)
+
+updateLoaded : Msg -> Firebase.Model -> Game -> ( Game, Firebase.Model, Cmd Msg )
+updateLoaded msg firebase game =
     case msg of
         DoStep ->
             (game, firebase, Cmd.none) -- |> doStep
 
         ResetTable ->
-            ( { game | deck = newDeck, players = initHands, community = []}
+            ( Poker.clearTable game
             , firebase
             , Cmd.none
             )
@@ -230,13 +237,13 @@ viewHands players =
 
 
 viewHand : Int -> Player -> Element Msg
-viewHand index hand =
+viewHand index player =
     column
         [ spacing 10
         , onMouseEnter <| UserHoveredButton index
         , onMouseLeave <| UserUnhoveredButton index
         ]
-        [ row [ spacing 10 ] (viewCards hand.cards), el [ centerX ] (text hand.name) ]
+        [ row [ spacing 10 ] (viewCards player.hand), el [ centerX ] (text player.name) ]
 
 
 viewTableCards : Game -> Element Msg
@@ -264,10 +271,10 @@ viewCard size card =
         , spacing 0
         , height <| px (9 * size // 10)
         , Background.color <| rgb255 255 255 255
-        , Font.color <| Deck.cardColor card
+        , Font.color <| Cards.cardColor card
         ]
         (el [ moveUp (0.13 * toFloat size) ]
-            (text (Deck.toString card))
+            (text (Cards.toString card))
         )
 
 
